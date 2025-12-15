@@ -41,6 +41,10 @@ export function Dashboard({
     });
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
+    // Sorting state - can sort by 'pair', 'spread', or an exchange id
+    const [sortColumn, setSortColumn] = useState<string>('spread');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
     // Update selectedExchanges when exchanges list changes
     useMemo(() => {
         if (exchanges.length > 0 && selectedExchanges.size === 0) {
@@ -74,6 +78,17 @@ export function Dashboard({
         });
     };
 
+    // Sort handler
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            // Default descending for spread, ascending for others
+            setSortDirection(column === 'spread' ? 'desc' : 'asc');
+        }
+    };
+
     // Filter prices based on search and favorites
     const filteredPrices = useMemo(() => {
         return Array.from(prices.entries())
@@ -94,8 +109,31 @@ export function Dashboard({
                     .filter(([exId]) => selectedExchanges.has(exId))
                     .map(([, price]) => price),
             }))
-            .filter(item => item.exchanges.length > 0);
-    }, [prices, searchQuery, showFavoritesOnly, favorites, selectedExchanges]);
+            // Only show symbols present on at least 2 exchanges (for arbitrage)
+            .filter(item => item.exchanges.length >= 2)
+            // Calculate spread for each item
+            .map(item => {
+                const allPrices = item.exchanges.map(p => p.bid).filter(p => p > 0);
+                const minPrice = Math.min(...allPrices);
+                const maxPrice = Math.max(...allPrices);
+                const spread = minPrice > 0 ? ((maxPrice - minPrice) / minPrice * 100) : 0;
+                return { ...item, spread };
+            })
+            // Sort based on selected column
+            .sort((a, b) => {
+                if (sortColumn === 'pair') {
+                    const comparison = a.symbol.localeCompare(b.symbol);
+                    return sortDirection === 'asc' ? comparison : -comparison;
+                } else if (sortColumn === 'spread') {
+                    return sortDirection === 'asc' ? a.spread - b.spread : b.spread - a.spread;
+                } else {
+                    // Sort by exchange bid price
+                    const aPrice = a.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
+                    const bPrice = b.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
+                    return sortDirection === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+                }
+            });
+    }, [prices, searchQuery, showFavoritesOnly, favorites, selectedExchanges, sortColumn, sortDirection]);
 
     // Get all unique exchanges from current data for table headers
     const activeExchangeIds = useMemo(() => {
@@ -160,13 +198,21 @@ export function Dashboard({
                         <table className={styles.priceTable}>
                             <thead>
                                 <tr>
-                                    <th className={styles.thPair}>PAIR</th>
-                                    <th className={styles.thSpread}>SPREAD</th>
+                                    <th className={`${styles.thPair} ${styles.sortable}`} onClick={() => handleSort('pair')}>
+                                        PAIR {sortColumn === 'pair' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                    </th>
+                                    <th className={`${styles.thSpread} ${styles.sortable}`} onClick={() => handleSort('spread')}>
+                                        SPREAD {sortColumn === 'spread' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                    </th>
                                     <th className={styles.thStrategy}>STRATEGY</th>
                                     {activeExchangeIds.map(exId => (
-                                        <th key={exId} className={styles.thExchange}>
+                                        <th
+                                            key={exId}
+                                            className={`${styles.thExchange} ${styles.sortable}`}
+                                            onClick={() => handleSort(exId)}
+                                        >
                                             <span className={styles.exchangeHeader}>
-                                                {exId.toUpperCase()}
+                                                {exId.toUpperCase()} {sortColumn === exId && (sortDirection === 'asc' ? '↑' : '↓')}
                                             </span>
                                         </th>
                                     ))}
@@ -187,26 +233,26 @@ export function Dashboard({
                                     return (
                                         <tr key={symbol} className={styles.tableRow}>
                                             <td className={styles.tdPair}>
-                                                <button
-                                                    className={styles.starBtn}
-                                                    onClick={() => handleFavoriteToggle(symbol)}
-                                                >
-                                                    {favorites.has(symbol) ? '★' : '☆'}
-                                                </button>
-                                                <strong>{symbol.replace('-USD', '')}</strong>
+                                                <div className={styles.pairContent}>
+                                                    <button
+                                                        className={`${styles.starBtn} ${favorites.has(symbol) ? styles.starBtnActive : ''}`}
+                                                        onClick={() => handleFavoriteToggle(symbol)}
+                                                    >
+                                                        {favorites.has(symbol) ? '★' : '☆'}
+                                                    </button>
+                                                    <span className={styles.pairSymbol}>{symbol.replace('-USD', '')}</span>
+                                                </div>
                                             </td>
                                             <td className={`${styles.tdSpread} ${spread > 0.1 ? styles.spreadHigh : ''}`}>
                                                 {spread.toFixed(4)}%
                                             </td>
                                             <td className={styles.tdStrategy}>
-                                                {spread > 0.1 && (
-                                                    <>
-                                                        <span className={styles.strategyLabel}>LONG</span>
-                                                        <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
-                                                        <span className={styles.strategyLabel}>SHORT</span>
-                                                        <span className={styles.strategyExchange}>{bestSellEx?.exchange?.toUpperCase()}</span>
-                                                    </>
-                                                )}
+                                                <div className={styles.strategyContent}>
+                                                    <span className={styles.strategyLabel}>LONG</span>
+                                                    <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
+                                                    <span className={styles.strategyLabel}>SHORT</span>
+                                                    <span className={styles.strategyExchange}>{bestSellEx?.exchange?.toUpperCase()}</span>
+                                                </div>
                                             </td>
                                             {activeExchangeIds.map(exId => {
                                                 const price = exPrices.find(p => p.exchange === exId);

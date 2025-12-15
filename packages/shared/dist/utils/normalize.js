@@ -10,12 +10,16 @@ export function normalizeSymbol(symbol) {
     // Handle common formats
     const upper = symbol.toUpperCase();
     // Remove common suffixes
-    const cleaned = upper
-        .replace(/USDT$/, '')
-        .replace(/USD$/, '')
-        .replace(/PERP$/, '')
-        .replace(/-PERP$/, '')
-        .replace(/-USD$/, '');
+    let cleaned = upper
+        .replace(/-USD-PERP$/i, '')
+        .replace(/-PERP$/i, '')
+        .replace(/PERP$/i, '')
+        .replace(/-USD$/i, '')
+        .replace(/USD$/i, '')
+        .replace(/USDT$/i, '')
+        .replace(/-+$/, ''); // Remove trailing dashes
+    // Remove any double dashes
+    cleaned = cleaned.replace(/--+/g, '-');
     return `${cleaned}-USD`;
 }
 /**

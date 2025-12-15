@@ -19,12 +19,28 @@ export class VestWebSocket extends BaseExchangeAdapter {
     readonly exchangeId = 'vest';
     readonly wsUrl = 'wss://ws-prod.hz.vestmarkets.com/ws-api?version=1.0';
 
-    // Symbols to subscribe to
-    // Reduced list to ensure validity. 
+    // Vest symbols filtered to only those present on other exchanges
+    // Common with: Hyperliquid, Paradex, Pacifica, Lighter
     private readonly symbols = [
-        'BTC-PERP',
-        'ETH-PERP',
-        'SOL-PERP',
+        'BTC-PERP',    // ✅ All exchanges
+        'ETH-PERP',    // ✅ All exchanges
+        'SOL-PERP',    // ✅ All exchanges
+        'XRP-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'BNB-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'HYPE-PERP',   // ✅ Hyperliquid, Lighter
+        'TAO-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'TON-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'SUI-PERP',    // ✅ All exchanges
+        'AAVE-PERP',   // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'NEAR-PERP',   // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'DOGE-PERP',   // ✅ All exchanges
+        'AVAX-PERP',   // ✅ All exchanges
+        'ENA-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'WLD-PERP',    // ✅ Lighter
+        'WIF-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'JUP-PERP',    // ✅ Hyperliquid, Paradex, Pacifica, Lighter
+        'BERA-PERP',   // ✅ Lighter
+        'FARTCOIN-PERP', // ✅ Lighter, Ethereal
     ];
 
     protected onOpen(): void {
@@ -106,7 +122,7 @@ export class VestWebSocket extends BaseExchangeAdapter {
     protected onMessage(data: WebSocket.RawData): void {
         try {
             // Debug log for raw message to verify subscription success
-            // console.log(`[${this.exchangeId}] Raw:`, data.toString().substring(0, 200));
+            // console.log(`[${this.exchangeId}] Raw:`, data.toString().substring(0, 300));
 
             const message = JSON.parse(data.toString());
 

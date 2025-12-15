@@ -31,19 +31,16 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
 
     private pingInterval: NodeJS.Timeout | null = null;
 
-    // Target symbols for L2 subscription
+    // Unified list of common tokens across all exchanges
     private readonly symbols = [
-        'BTC',
-        'ETH',
-        'SOL',
-        'ARB',
-        'AVAX',
-        'DOGE',
-        'LINK',
-        'OP',
-        'MATIC',
-        'SUI',
-        'XYZ', // Special request
+        // Tier 1 - Major tokens (all exchanges)
+        'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK',
+        // Tier 2 - Popular alts (most exchanges)
+        'ARB', 'OP', 'APT', 'NEAR', 'DOT', 'TON', 'TAO', 'TIA',
+        'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
+        // Tier 3 - Trending tokens (multiple exchanges)
+        'PEPE', 'BONK', 'WLD', 'TRUMP', 'FARTCOIN', 'PENGU', 'ONDO',
+        'PENDLE', 'LDO', 'CRV', 'GMX', 'DYDX', 'TRX', 'ATOM', 'ADA',
     ];
 
     protected onOpen(): void {
@@ -52,54 +49,53 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
         this.startPing();
     }
 
-    /**
-     * Subscribe to L2 Book for specific coins with delay to avoid rate limits
-     */
     private async subscribeToL2Books(): Promise<void> {
+        // Subscribe to L2 OrderBook for each coin with delay to prevent rate limiting
         for (const coin of this.symbols) {
             this.send({
                 method: 'subscribe',
                 subscription: {
                     type: 'l2Book',
-                    coin: coin,
+                    coin,
                 },
             });
-            // Small delay to avoid burst rate limits
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Small delay between subscriptions (50ms)
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         console.log(`[${this.exchangeId}] Subscribed to L2 OrderBook for ${this.symbols.length} coins`);
     }
 
-    /**
-     * Keep connection alive with periodic pings
-     */
     private startPing(): void {
+        // Send ping every 30 seconds to keep connection alive
         this.pingInterval = setInterval(() => {
             this.send({ method: 'ping' });
-        }, 30000); // Ping every 30 seconds
+        }, 30000);
     }
 
     protected onMessage(data: WebSocket.RawData): void {
         try {
             const message = JSON.parse(data.toString());
 
-            // Handle channel data
-            if (message.channel === 'l2Book' && message.data) {
-                const bookData = message.data as WsBook;
-                const coin = bookData.coin;
+            // Handle pong
+            if (message.channel === 'pong') {
+                return;
+            }
 
-                // levels[0] is bids, levels[1] is asks
-                const bids = bookData.levels[0];
-                const asks = bookData.levels[1];
+            // Handle L2 Book updates
+            // Format: { "channel": "l2Book", "data": { "coin": "BTC", "levels": [[...bids], [...asks]], "time": ... } }
+            if (message.channel === 'l2Book' && message.data) {
+                const book: WsBook = message.data;
+                const symbol = normalizeSymbol(book.coin);
+
+                const bids = book.levels[0];
+                const asks = book.levels[1];
 
                 if (bids && bids.length > 0 && asks && asks.length > 0) {
                     const bestBid = parseFloat(bids[0].px);
                     const bestAsk = parseFloat(asks[0].px);
 
                     if (bestBid > 0 && bestAsk > 0) {
-                        const symbol = normalizeSymbol(coin);
-
                         this.emitPrice({
                             exchange: this.exchangeId,
                             symbol,
@@ -109,18 +105,6 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
                     }
                 }
             }
-
-            // Handle pong
-            if (message.channel === 'pong') {
-                return;
-            }
-
-            // Handle subscription confirmation
-            if (message.channel === 'subscriptionResponse') {
-                // console.log(`[${this.exchangeId}] Subscribed to ${message.data?.subscription?.coin}`);
-                return;
-            }
-
         } catch (error) {
             console.error(`[${this.exchangeId}] Parse error:`, error);
         }

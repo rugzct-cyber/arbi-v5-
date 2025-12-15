@@ -20,23 +20,18 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
 
     private messageId = 1;
 
-    // Main perpetual markets to subscribe to
+    // Unified list of common tokens across all exchanges
     private readonly markets = [
-        'BTC-USD-PERP',
-        'ETH-USD-PERP',
-        'SOL-USD-PERP',
-        'ARB-USD-PERP',
-        'AVAX-USD-PERP',
-        'DOGE-USD-PERP',
-        'LINK-USD-PERP',
-        'OP-USD-PERP',
-        'MATIC-USD-PERP',
-        'SUI-USD-PERP',
-        'APT-USD-PERP',
-        'NEAR-USD-PERP',
-        'ATOM-USD-PERP',
-        'XRP-USD-PERP',
-        'ADA-USD-PERP',
+        // Tier 1 - Major tokens (all exchanges)
+        'BTC-USD-PERP', 'ETH-USD-PERP', 'SOL-USD-PERP', 'XRP-USD-PERP', 'BNB-USD-PERP',
+        'DOGE-USD-PERP', 'AVAX-USD-PERP', 'SUI-USD-PERP', 'LINK-USD-PERP',
+        // Tier 2 - Popular alts (most exchanges)
+        'ARB-USD-PERP', 'OP-USD-PERP', 'APT-USD-PERP', 'NEAR-USD-PERP', 'DOT-USD-PERP',
+        'TON-USD-PERP', 'TAO-USD-PERP', 'TIA-USD-PERP', 'AAVE-USD-PERP', 'UNI-USD-PERP',
+        'ENA-USD-PERP', 'SEI-USD-PERP', 'WIF-USD-PERP', 'JUP-USD-PERP', 'HYPE-USD-PERP', 'BERA-USD-PERP',
+        // Tier 3 - Trending tokens (multiple exchanges)
+        'PEPE-USD-PERP', 'BONK-USD-PERP', 'WLD-USD-PERP', 'TRUMP-USD-PERP', 'FARTCOIN-USD-PERP',
+        'PENGU-USD-PERP', 'ONDO-USD-PERP', 'PENDLE-USD-PERP', 'LDO-USD-PERP', 'ATOM-USD-PERP', 'ADA-USD-PERP',
     ];
 
     protected onOpen(): void {

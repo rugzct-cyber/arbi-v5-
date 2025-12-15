@@ -23,23 +23,16 @@ export class PacificaWebSocket extends BaseExchangeAdapter {
 
     private pingInterval: NodeJS.Timeout | null = null;
 
-    // Symbols to subscribe to
+    // Unified list of common tokens across all exchanges
     private readonly symbols = [
-        'BTC',
-        'ETH',
-        'SOL',
-        'ARB',
-        'AVAX',
-        'DOGE',
-        'LINK',
-        'OP',
-        'SUI',
-        'APT',
-        'NEAR',
-        'XRP',
-        'ADA',
-        'DOT',
-        'ATOM',
+        // Tier 1 - Major tokens (all exchanges)
+        'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK',
+        // Tier 2 - Popular alts (most exchanges)
+        'ARB', 'OP', 'APT', 'NEAR', 'DOT', 'TON', 'TAO', 'TIA',
+        'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
+        // Tier 3 - Trending tokens (multiple exchanges)
+        'PEPE', 'BONK', 'WLD', 'TRUMP', 'FARTCOIN', 'PENGU', 'ONDO',
+        'PENDLE', 'LDO', 'ATOM', 'ADA',
     ];
 
     protected onOpen(): void {
