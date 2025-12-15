@@ -15,13 +15,17 @@ interface DashboardProps {
     prices: Map<string, Map<string, PriceUpdate>>;
     opportunities: ArbitrageOpportunity[];
     exchanges: ExchangeStatus[];
+    lastRefresh: Date;
+    onRefresh: () => void;
 }
 
 export function Dashboard({
     isConnected,
     prices,
     opportunities,
-    exchanges
+    exchanges,
+    lastRefresh,
+    onRefresh
 }: DashboardProps) {
     // State for filtering
     const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(() => {
@@ -129,9 +133,23 @@ export function Dashboard({
                             <a href="#" className={styles.navLinkInactive}>Metrics</a>
                             <a href="#" className={styles.navLinkInactive}>Ref Links</a>
                         </nav>
-                        <div className={styles.status}>
-                            <span className={`status-dot ${isConnected ? 'status-connected' : 'status-disconnected'}`} />
-                            {isConnected ? 'Connected' : 'Disconnected'}
+                        <div className={styles.headerRight}>
+                            <div className={styles.refreshSection}>
+                                <span className={styles.lastRefresh}>
+                                    Updated: {lastRefresh.toLocaleTimeString()}
+                                </span>
+                                <button
+                                    className={styles.refreshBtn}
+                                    onClick={onRefresh}
+                                    title="Refresh prices"
+                                >
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                            <div className={styles.status}>
+                                <span className={`status-dot ${isConnected ? 'status-connected' : 'status-disconnected'}`} />
+                                {isConnected ? 'Connected' : 'Disconnected'}
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -195,12 +213,21 @@ export function Dashboard({
                                                 return (
                                                     <td key={exId} className={styles.tdPrice}>
                                                         {price ? (
-                                                            <span className={styles.priceValue}>
-                                                                ${price.bid.toLocaleString('en-US', {
-                                                                    minimumFractionDigits: 2,
-                                                                    maximumFractionDigits: 2
-                                                                })}
-                                                            </span>
+                                                            <div className={styles.priceCell}>
+                                                                <span className={styles.bidPrice}>
+                                                                    ${price.bid.toLocaleString('en-US', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2
+                                                                    })}
+                                                                </span>
+                                                                <span className={styles.priceSeparator}>/</span>
+                                                                <span className={styles.askPrice}>
+                                                                    ${price.ask.toLocaleString('en-US', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2
+                                                                    })}
+                                                                </span>
+                                                            </div>
                                                         ) : (
                                                             <span className={styles.noPrice}>-</span>
                                                         )}

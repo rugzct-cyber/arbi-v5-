@@ -73,6 +73,44 @@
     color: var(--muted-foreground);
 }
 
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.refreshSection {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.lastRefresh {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.refreshBtn {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--primary-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+    background: var(--ring);
+    transform: scale(1.02);
+}
+
+.refreshBtn:active {
+    transform: scale(0.98);
+}
+
 .section {
     flex: 1;
     padding: 1rem 1.5rem;
@@ -197,6 +235,27 @@
 .priceValue {
     font-family: 'Monaco', 'Consolas', monospace;
     color: var(--foreground);
+}
+
+.priceCell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.75rem;
+}
+
+.bidPrice {
+    color: var(--accent);
+}
+
+.askPrice {
+    color: var(--destructive);
+}
+
+.priceSeparator {
+    color: var(--muted-foreground);
 }
 
 .noPrice {

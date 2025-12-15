@@ -1,4 +1,4 @@
-import { SYMBOL_ALIASES } from '../constants/symbols.js';
+import { SYMBOL_ALIASES } from '../constants/symbols';
 /**
  * Normalize a symbol to the standard format (e.g., BTC-USD)
  */

@@ -1,11 +1,11 @@
 // Types
-export * from './types/price.js';
-export * from './types/arbitrage.js';
-export * from './types/socket-events.js';
+export * from './types/price';
+export * from './types/arbitrage';
+export * from './types/socket-events';
 
 // Constants
-export * from './constants/symbols.js';
-export * from './constants/exchanges.js';
+export * from './constants/symbols';
+export * from './constants/exchanges';
 
 // Utils
-export * from './utils/normalize.js';
+export * from './utils/normalize';

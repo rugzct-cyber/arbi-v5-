@@ -8,7 +8,9 @@ export default function HomePage() {
         isConnected,
         prices,
         opportunities,
-        exchanges
+        exchanges,
+        lastRefresh,
+        refreshPrices
     } = useSocket();
 
     return (
@@ -18,6 +20,8 @@ export default function HomePage() {
                 prices={prices}
                 opportunities={opportunities}
                 exchanges={exchanges}
+                lastRefresh={lastRefresh}
+                onRefresh={refreshPrices}
             />
         </main>
     );
