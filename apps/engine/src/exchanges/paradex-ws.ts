@@ -46,6 +46,7 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
         'PYTH-USD-PERP', 'RUNE-USD-PERP', 'XLM-USD-PERP', 'XMR-USD-PERP', 'ZK-USD-PERP',
         'KBONK-USD-PERP', 'KFLOKI-USD-PERP', 'KPEPE-USD-PERP', 'KSHIB-USD-PERP',
         'MELANIA-USD-PERP', 'MORPHO-USD-PERP', 'USUAL-USD-PERP', 'VVV-USD-PERP', 'WCT-USD-PERP',
+        'QNT-USD-PERP', 'BAT-USD-PERP', 'CLANKER-USD-PERP', 'DASH-USD-PERP', 'HYPER-USD-PERP', 'FLOW-USD-PERP', 'WOO-USD-PERP', 'YB-USD-PERP',
     ];
 
     protected onOpen(): void {
