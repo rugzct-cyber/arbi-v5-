@@ -38,7 +38,7 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
         'KAITO-USD-PERP', 'LINEA-USD-PERP', 'MNT-USD-PERP', 'MON-USD-PERP', 'MOODENG-USD-PERP',
         'POPCAT-USD-PERP', 'PUMP-USD-PERP', 'RESOLV-USD-PERP', 'S-USD-PERP', 'SNX-USD-PERP',
         'STRK-USD-PERP', 'TRX-USD-PERP', 'VIRTUAL-USD-PERP', 'WLFI-USD-PERP', 'XPL-USD-PERP',
-        'ZEC-USD-PERP', 'ZORA-USD-PERP', 'ZRO-USD-PERP',
+        'ZEC-USD-PERP', 'ZORA-USD-PERP', 'ZRO-USD-PERP', '4-USD-PERP',
     ];
 
     protected onOpen(): void {
