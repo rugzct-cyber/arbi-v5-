@@ -33,14 +33,22 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
 
     // Unified list of common tokens across all exchanges
     private readonly symbols = [
-        // Tier 1 - Major tokens (all exchanges)
-        'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK',
-        // Tier 2 - Popular alts (most exchanges)
+        // Tier 1 - Major tokens
+        'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK', 'LTC',
+        // Tier 2 - Popular alts
         'ARB', 'OP', 'APT', 'NEAR', 'DOT', 'TON', 'TAO', 'TIA',
         'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
-        // Tier 3 - Trending tokens (multiple exchanges)
+        // Tier 3 - Trending tokens
         'PEPE', 'BONK', 'WLD', 'TRUMP', 'FARTCOIN', 'PENGU', 'ONDO',
         'PENDLE', 'LDO', 'CRV', 'GMX', 'DYDX', 'TRX', 'ATOM', 'ADA',
+        // Tier 4 - Additional tokens
+        'AERO', 'APEX', 'ASTER', 'AVNT', 'CAKE', 'EIGEN', 'GOAT', 'GRASS', 'IP',
+        'KAITO', 'LINEA', 'MNT', 'MON', 'MOODENG', 'POPCAT', 'PUMP', 'RESOLV', 'S',
+        'SNX', 'STRK', 'VIRTUAL', 'WLFI', 'XPL', 'ZEC', 'ZORA', 'ZRO', '4',
+        // Tier 5 - More tokens
+        '0G', 'AIXBT', 'BCH', 'FIL', 'HBAR', 'ICP', 'INIT', 'INJ', 'JTO',
+        'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XLM', 'XMR', 'ZK',
+        'kBONK', 'kFLOKI', 'kPEPE', 'kSHIB', 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT',
     ];
 
     protected onOpen(): void {
