@@ -1,5 +1,5 @@
-import type { PriceUpdate, AggregatedPrice } from './price';
-import type { ArbitrageOpportunity, ArbitrageStats } from './arbitrage';
+import type { PriceUpdate, AggregatedPrice } from './price.js';
+import type { ArbitrageOpportunity, ArbitrageStats } from './arbitrage.js';
 
 /**
  * Events emitted from server to client
