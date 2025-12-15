@@ -44,7 +44,7 @@ export class ExchangeManager {
     this.adapters.set('hyperliquid', new HyperliquidWebSocket(this.createAdapterConfig('hyperliquid')));
     this.adapters.set('lighter', new LighterWebSocket(this.createAdapterConfig('lighter')));
     this.adapters.set('pacifica', new PacificaWebSocket(this.createAdapterConfig('pacifica')));
-    this.adapters.set('ethereal', new EtherealWebSocket(this.createAdapterConfig('ethereal')));
+    this.adapters.set('ethereal', new EtherealWebSocket(this.createAdapterConfig('ethereal')) as any);
 
     console.log(`📦 Initialized ${this.adapters.size} exchange adapters`);
   }
