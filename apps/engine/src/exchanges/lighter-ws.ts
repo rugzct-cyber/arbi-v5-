@@ -10,7 +10,6 @@ import { normalizeSymbol } from '@arbitrage/shared';
  * URL: wss://mainnet.zklighter.elliot.ai/stream
  * 
  * Uses order_book channel to get real bid/ask prices.
- * Mid price = (best_bid + best_ask) / 2
  * 
  * Subscribe format:
  * { "type": "subscribe", "channel": "order_book/{MARKET_INDEX}" }

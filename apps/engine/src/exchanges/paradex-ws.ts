@@ -10,7 +10,6 @@ import { normalizeSymbol } from '@arbitrage/shared';
  * URL: wss://ws.api.prod.paradex.trade/v1
  * 
  * Uses BBO (Best Bid Offer) channel to get real bid/ask prices.
- * Mid price = (best_bid + best_ask) / 2
  * 
  * Subscribe format (JSON-RPC):
  * { "jsonrpc": "2.0", "method": "subscribe", "params": { "channel": "bbo.{MARKET}" }, "id": 1 }

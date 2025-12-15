@@ -60,6 +60,27 @@ export class QuestDBClient {
             }
         }
     }
+    async insertOpportunity(opportunity: any): Promise<void> {
+        if (this.connectionFailed) return;
+        if (!this.sender) await this.connect();
+        if (!this.sender) return;
+
+        try {
+            await this.sender
+                .table('opportunities')
+                .symbol('id', opportunity.id)
+                .symbol('symbol', opportunity.symbol)
+                .symbol('buy_exchange', opportunity.buyExchange)
+                .symbol('sell_exchange', opportunity.sellExchange)
+                .floatColumn('buy_price', opportunity.buyPrice)
+                .floatColumn('sell_price', opportunity.sellPrice)
+                .floatColumn('spread', opportunity.spreadPercent)
+                .floatColumn('profit', opportunity.potentialProfit)
+                .atNow();
+        } catch (error) {
+            console.error('QuestDB Opportunity insert failed', error);
+        }
+    }
 
     async insertBatch(prices: PriceData[]): Promise<void> {
         for (const price of prices) {

@@ -43,8 +43,7 @@ async function main() {
             // Log sample prices every 5 seconds
             const now = Date.now();
             if (now - lastLogTime >= logInterval) {
-                const mid = (price.bid + price.ask) / 2;
-                console.log(`📊 [${price.exchange}] ${price.symbol}: $${mid.toFixed(2)} | Total: ${priceCount} prices received`);
+                console.log(`📊 [${price.exchange}] ${price.symbol}: Bid ${price.bid} / Ask ${price.ask} | Total: ${priceCount} prices received`);
                 lastLogTime = now;
             }
 
@@ -61,6 +60,7 @@ async function main() {
             broadcaster.broadcastPrice(price);
             if (opportunity) {
                 broadcaster.broadcastOpportunity(opportunity);
+                await questdb.insertOpportunity(opportunity);
             }
         },
         onError: (exchange, error) => {
