@@ -119,8 +119,13 @@ async function main() {
         }, msUntilNext);
     };
 
-    // Start aligned scheduling
-    scheduleNextInsert();
+    // Initial insert 30 seconds after startup (to collect some prices first)
+    setTimeout(async () => {
+        console.log('🚀 Initial QuestDB insert (30s after startup)...');
+        await insertPrices();
+        // Then schedule aligned inserts
+        scheduleNextInsert();
+    }, 30000);
 
     // Start exchange connections
     await exchangeManager.connectAll();
