@@ -1,0 +1,163 @@
+.sidebar {
+    width: 240px;
+    min-height: calc(100vh - 80px);
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: relative;
+    transition: width 0.2s ease;
+}
+
+.sidebar.collapsed {
+    width: 50px;
+    padding: 1rem 0.5rem;
+}
+
+.collapseBtn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.collapseBtn:hover {
+    background: var(--muted);
+}
+
+.searchSection {
+    margin-top: 1.5rem;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.searchInput::placeholder {
+    color: var(--muted-foreground);
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sectionTitle {
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.favoritesBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.favoritesBtn:hover {
+    background: var(--secondary);
+}
+
+.favoritesBtn.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--primary);
+}
+
+.starIcon {
+    color: #fbbf24;
+}
+
+.count {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+}
+
+.exchangeList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.exchangeItem {
+    /* wrapper */
+}
+
+.exchangeLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.exchangeLabel:hover {
+    background: var(--secondary);
+}
+
+.checkbox {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary);
+}
+
+.statusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.statusDot.online {
+    background: var(--accent);
+    box-shadow: 0 0 4px var(--accent);
+}
+
+.statusDot.offline {
+    background: var(--destructive);
+}
+
+.exchangeName {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--foreground);
+}
