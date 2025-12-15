@@ -82,12 +82,13 @@ async function main() {
         },
     });
 
-    // 15-minute interval for database sampling
-    setInterval(async () => {
+    // Function to insert prices at aligned times (xx:00, xx:15, xx:30, xx:45)
+    const insertPrices = async () => {
         if (latestPrices.size === 0) return;
 
         const prices = Array.from(latestPrices.values());
-        console.log(`💾 Sampling ${prices.length} prices to QuestDB...`);
+        const now = new Date();
+        console.log(`💾 [${now.toISOString()}] Sampling ${prices.length} prices to QuestDB...`);
 
         try {
             await questdb.insertBatch(prices);
@@ -95,7 +96,31 @@ async function main() {
         } catch (error) {
             console.error('❌ QuestDB batch insert failed:', error);
         }
-    }, DB_SAMPLE_INTERVAL);
+    };
+
+    // Schedule next aligned insert (xx:00, xx:15, xx:30, xx:45)
+    const scheduleNextInsert = () => {
+        const now = new Date();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        const ms = now.getMilliseconds();
+
+        // Calculate next aligned time (0, 15, 30, 45)
+        const nextAligned = Math.ceil((minutes + 1) / 15) * 15;
+        const minutesUntilNext = (nextAligned - minutes - 1 + 60) % 60 || 15;
+        const msUntilNext = (minutesUntilNext * 60 - seconds) * 1000 - ms;
+
+        console.log(`⏰ Next QuestDB insert in ${Math.round(msUntilNext / 1000)}s at :${String((nextAligned % 60)).padStart(2, '0')}`);
+
+        setTimeout(async () => {
+            await insertPrices();
+            // After inserting, schedule next one in exactly 15 minutes
+            setInterval(insertPrices, DB_SAMPLE_INTERVAL);
+        }, msUntilNext);
+    };
+
+    // Start aligned scheduling
+    scheduleNextInsert();
 
     // Start exchange connections
     await exchangeManager.connectAll();
