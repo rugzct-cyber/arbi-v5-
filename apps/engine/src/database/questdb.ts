@@ -52,7 +52,6 @@ export class QuestDBClient {
                 .symbol('symbol', price.symbol)
                 .floatColumn('bid', price.bid)
                 .floatColumn('ask', price.ask)
-                .floatColumn('spread', ((price.ask - price.bid) / price.bid) * 100)
                 .atNow();
         } catch (error) {
             if (!this.errorLogged) {
