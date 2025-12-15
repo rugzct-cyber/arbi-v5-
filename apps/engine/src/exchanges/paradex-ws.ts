@@ -24,7 +24,7 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
     private readonly markets = [
         // Tier 1 - Major tokens (all exchanges)
         'BTC-USD-PERP', 'ETH-USD-PERP', 'SOL-USD-PERP', 'XRP-USD-PERP', 'BNB-USD-PERP',
-        'DOGE-USD-PERP', 'AVAX-USD-PERP', 'SUI-USD-PERP', 'LINK-USD-PERP',
+        'DOGE-USD-PERP', 'AVAX-USD-PERP', 'SUI-USD-PERP', 'LINK-USD-PERP', 'LTC-USD-PERP',
         // Tier 2 - Popular alts (most exchanges)
         'ARB-USD-PERP', 'OP-USD-PERP', 'APT-USD-PERP', 'NEAR-USD-PERP', 'DOT-USD-PERP',
         'TON-USD-PERP', 'TAO-USD-PERP', 'TIA-USD-PERP', 'AAVE-USD-PERP', 'UNI-USD-PERP',
@@ -32,6 +32,13 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
         // Tier 3 - Trending tokens (multiple exchanges)
         'PEPE-USD-PERP', 'BONK-USD-PERP', 'WLD-USD-PERP', 'TRUMP-USD-PERP', 'FARTCOIN-USD-PERP',
         'PENGU-USD-PERP', 'ONDO-USD-PERP', 'PENDLE-USD-PERP', 'LDO-USD-PERP', 'ATOM-USD-PERP', 'ADA-USD-PERP',
+        // Tier 4 - Additional tokens
+        'AERO-USD-PERP', 'APEX-USD-PERP', 'ASTER-USD-PERP', 'AVNT-USD-PERP', 'CAKE-USD-PERP',
+        'CRV-USD-PERP', 'EIGEN-USD-PERP', 'GOAT-USD-PERP', 'GRASS-USD-PERP', 'IP-USD-PERP',
+        'KAITO-USD-PERP', 'LINEA-USD-PERP', 'MNT-USD-PERP', 'MON-USD-PERP', 'MOODENG-USD-PERP',
+        'POPCAT-USD-PERP', 'PUMP-USD-PERP', 'RESOLV-USD-PERP', 'S-USD-PERP', 'SNX-USD-PERP',
+        'STRK-USD-PERP', 'TRX-USD-PERP', 'VIRTUAL-USD-PERP', 'WLFI-USD-PERP', 'XPL-USD-PERP',
+        'ZEC-USD-PERP', 'ZORA-USD-PERP', 'ZRO-USD-PERP',
     ];
 
     protected onOpen(): void {

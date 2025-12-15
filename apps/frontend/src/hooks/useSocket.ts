@@ -23,7 +23,7 @@ const ALL_EXCHANGES: ExchangeStatus[] = ACTIVE_EXCHANGE_IDS.map(id => ({
     connected: false
 }));
 
-const REFRESH_INTERVAL = 5000; // 5 seconds
+const REFRESH_INTERVAL = 20000; // 20 seconds
 
 export function useSocket() {
     const [isConnected, setIsConnected] = useState(false);
