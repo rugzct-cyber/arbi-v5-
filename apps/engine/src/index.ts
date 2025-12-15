@@ -6,8 +6,10 @@ import { PriceAggregator } from './services/price-aggregator.js';
 import { ArbitrageDetector } from './services/arbitrage-detector.js';
 import { Broadcaster } from './services/broadcaster.js';
 import { QuestDBClient } from './database/questdb.js';
+import type { PriceData } from '@arbitrage/shared';
 
 const PORT = process.env.PORT || 3001;
+const DB_SAMPLE_INTERVAL = 15 * 60 * 1000; // 15 minutes in ms
 
 async function main() {
     console.log('🚀 Starting Arbitrage Engine v5...');
@@ -20,9 +22,9 @@ async function main() {
 
     // Initialize QuestDB client
     const questdb = new QuestDBClient({
-        host: process.env.QUESTDB_HOST || 'localhost',
+        host: process.env.QUESTDB_HOST || 'questdbquestdb-production-cc7b.up.railway.app',
         ilpPort: parseInt(process.env.QUESTDB_ILP_PORT || '9009'),
-        httpPort: parseInt(process.env.QUESTDB_HTTP_PORT || '9000'),
+        httpPort: parseInt(process.env.QUESTDB_HTTP_PORT || '443'),
     });
 
     // Initialize services
@@ -35,10 +37,17 @@ async function main() {
     let lastLogTime = Date.now();
     const logInterval = 5000; // Log every 5 seconds
 
+    // Store latest prices for 15-min sampling
+    const latestPrices = new Map<string, PriceData>();
+
     // Initialize exchange connections
     const exchangeManager = new ExchangeManager({
         onPrice: async (price) => {
             priceCount++;
+
+            // Store latest price (key = exchange:symbol)
+            const key = `${price.exchange}:${price.symbol}`;
+            latestPrices.set(key, price);
 
             // Log sample prices every 5 seconds
             const now = Date.now();
@@ -46,9 +55,6 @@ async function main() {
                 console.log(`📊 [${price.exchange}] ${price.symbol}: Bid ${price.bid} / Ask ${price.ask} | Total: ${priceCount} prices received`);
                 lastLogTime = now;
             }
-
-            // Store in QuestDB
-            await questdb.insertPrice(price);
 
             // Aggregate prices
             const aggregated = priceAggregator.update(price);
@@ -60,7 +66,6 @@ async function main() {
             broadcaster.broadcastPrice(price);
             if (opportunity) {
                 broadcaster.broadcastOpportunity(opportunity);
-                await questdb.insertOpportunity(opportunity);
             }
         },
         onError: (exchange, error) => {
@@ -77,6 +82,21 @@ async function main() {
         },
     });
 
+    // 15-minute interval for database sampling
+    setInterval(async () => {
+        if (latestPrices.size === 0) return;
+
+        const prices = Array.from(latestPrices.values());
+        console.log(`💾 Sampling ${prices.length} prices to QuestDB...`);
+
+        try {
+            await questdb.insertBatch(prices);
+            console.log(`✅ Saved ${prices.length} prices to QuestDB`);
+        } catch (error) {
+            console.error('❌ QuestDB batch insert failed:', error);
+        }
+    }, DB_SAMPLE_INTERVAL);
+
     // Start exchange connections
     await exchangeManager.connectAll();
 
@@ -84,6 +104,7 @@ async function main() {
     httpServer.listen(PORT, () => {
         console.log(`✅ Engine running on port ${PORT}`);
         console.log(`📡 Socket.io ready for connections`);
+        console.log(`💾 QuestDB sampling every 15 minutes`);
     });
 
     // Graceful shutdown

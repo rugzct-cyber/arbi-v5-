@@ -258,23 +258,26 @@ export function Dashboard({
                                                 const price = exPrices.find(p => p.exchange === exId);
                                                 return (
                                                     <td key={exId} className={styles.tdPrice}>
-                                                        {price ? (
-                                                            <div className={styles.priceCell}>
-                                                                <span className={styles.bidPrice}>
-                                                                    ${price.bid.toLocaleString('en-US', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2
-                                                                    })}
-                                                                </span>
-                                                                <span className={styles.priceSeparator}>/</span>
-                                                                <span className={styles.askPrice}>
-                                                                    ${price.ask.toLocaleString('en-US', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2
-                                                                    })}
-                                                                </span>
-                                                            </div>
-                                                        ) : (
+                                                        {price ? (() => {
+                                                            // Dynamic decimal formatting based on price magnitude
+                                                            const formatPrice = (p: number) => {
+                                                                if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+                                                                if (p >= 0.01) return p.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+                                                                return p.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
+                                                            };
+                                                            return (
+                                                                <div className={styles.priceCell}>
+                                                                    <span className={styles.bidPrice}>
+                                                                        ${formatPrice(price.bid)}
+                                                                    </span>
+                                                                    <span className={styles.priceSeparator}>/</span>
+                                                                    <span className={styles.askPrice}>
+                                                                        ${formatPrice(price.ask)}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })() : (
                                                             <span className={styles.noPrice}>-</span>
                                                         )}
                                                     </td>
@@ -288,26 +291,7 @@ export function Dashboard({
                     </div>
                 </section>
 
-                {/* Opportunities Section (Condensed) */}
-                {opportunities.length > 0 && (
-                    <section className={styles.opportunitiesSection}>
-                        <h2 className={styles.sectionTitle}>
-                            🎯 Live Opportunities
-                            <span className="badge badge-success" style={{ marginLeft: '0.5rem' }}>
-                                {opportunities.length}
-                            </span>
-                        </h2>
-                        <div className={styles.opportunitiesList}>
-                            {opportunities.slice(0, 5).map((opp) => (
-                                <div key={opp.id} className={styles.opportunityCard}>
-                                    <strong>{opp.symbol}</strong>
-                                    <span>{opp.buyExchange} → {opp.sellExchange}</span>
-                                    <span className="price-up">{opp.spreadPercent.toFixed(3)}%</span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
+
             </div>
         </div>
     );

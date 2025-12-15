@@ -22,11 +22,13 @@ export class QuestDBClient {
         if (this.connected || this.connectionFailed) return;
 
         try {
+            // Use https for port 443 (Railway public endpoint)
+            const protocol = this.config.httpPort === 443 ? 'https' : 'http';
             this.sender = Sender.fromConfig(
-                `http::addr=${this.config.host}:${this.config.httpPort};`
+                `${protocol}::addr=${this.config.host}:${this.config.httpPort};`
             );
             this.connected = true;
-            console.log('✅ Connected to QuestDB');
+            console.log(`✅ Connected to QuestDB at ${this.config.host}`);
         } catch (error) {
             this.connectionFailed = true;
             console.warn('⚠️ QuestDB not available - running without persistence');
