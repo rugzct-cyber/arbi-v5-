@@ -103,11 +103,13 @@ export function PriceTable({
 
                 return {
                     ...item,
-                    spread: Math.max(0, spread),
+                    spread, // Allow negative spreads
                     buyExchange: finalBuyEx.exchange,
                     sellExchange: finalSellEx.exchange
                 };
             })
+            // Filter out rows with no valid spread (buyExchange/sellExchange empty)
+            .filter(item => item.buyExchange && item.sellExchange)
             .sort((a, b) => {
                 if (sortColumn === 'pair') {
                     const comparison = a.symbol.localeCompare(b.symbol);
