@@ -202,7 +202,7 @@ export function Dashboard({
                         </nav>
                         <div className={styles.headerRight}>
                             <div className={styles.refreshSection}>
-                                <span className={styles.lastRefresh}>
+                                <span className={styles.lastRefresh} suppressHydrationWarning>
                                     Updated: {lastRefresh.toLocaleTimeString()}
                                 </span>
                                 <button
