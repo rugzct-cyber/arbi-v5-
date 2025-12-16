@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { createChart, ColorType, IChartApi, AreaData, Time } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, AreaData, Time, AreaSeries } from 'lightweight-charts';
 import styles from './SpreadChart.module.css';
 
 interface SpreadDataPoint {
@@ -98,9 +98,8 @@ export function SpreadChart({ symbol, buyExchange, sellExchange, currentSpread, 
             },
         });
 
-        // Use type assertion for API compatibility
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const areaSeries = (chart as any).addAreaSeries({
+        // lightweight-charts v5 API: use AreaSeries as first argument
+        const areaSeries = chart.addSeries(AreaSeries, {
             lineColor: '#3b82f6',
             topColor: 'rgba(59, 130, 246, 0.4)',
             bottomColor: 'rgba(59, 130, 246, 0.0)',
