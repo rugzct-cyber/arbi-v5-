@@ -23,6 +23,13 @@ export abstract class BaseExchangeAdapter {
         this.config = config;
     }
 
+    /**
+     * Override this method to provide custom WebSocket options (e.g., headers)
+     */
+    protected getWebSocketOptions(): WebSocket.ClientOptions {
+        return {};
+    }
+
     async connect(): Promise<void> {
         if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
             return;
@@ -32,7 +39,11 @@ export abstract class BaseExchangeAdapter {
 
         return new Promise((resolve, reject) => {
             try {
-                this.ws = new WebSocket(this.wsUrl);
+                // Use getWebSocketOptions() to allow subclasses to add custom headers
+                const options = this.getWebSocketOptions();
+                this.ws = Object.keys(options).length > 0
+                    ? new WebSocket(this.wsUrl, options)
+                    : new WebSocket(this.wsUrl);
 
                 this.ws.on('open', () => {
                     this.isConnecting = false;

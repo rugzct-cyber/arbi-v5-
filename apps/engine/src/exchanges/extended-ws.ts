@@ -29,64 +29,16 @@ export class ExtendedWebSocket extends BaseExchangeAdapter {
         console.log(`[${this.exchangeId}] WebSocket connected to orderbook stream`);
     }
 
-    // Override connect to add headers
-    async connect(): Promise<void> {
-        if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
-            return;
-        }
-
-        this.isConnecting = true;
-
-        return new Promise((resolve, reject) => {
-            try {
-                // Add headers to mimic browser/legitimate client to bypass 403
-                this.ws = new WebSocket(this.wsUrl, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Origin': 'https://extended.exchange',
-                        'Pragma': 'no-cache',
-                        'Cache-Control': 'no-cache',
-                    }
-                });
-
-                this.ws.on('open', () => {
-                    this.isConnecting = false;
-                    this.reconnectAttempts = 0;
-                    this.onOpen();
-                    this.config.onConnected();
-                    resolve();
-                });
-
-                this.ws.on('message', (data) => {
-                    try {
-                        this.onMessage(data);
-                    } catch (error) {
-                        console.error(`[${this.exchangeId}] Message parse error:`, error);
-                    }
-                });
-
-                this.ws.on('error', (error) => {
-                    // Log error but don't reject immediately if retrying is handled elsewhere
-                    // For initial connection failure, we might want to reject
-                    if (error.message.includes('403')) {
-                        console.error(`[${this.exchangeId}] Connection forbidden (403). Headers might be blocked.`);
-                    }
-                    this.isConnecting = false;
-                    this.config.onError(error);
-                    reject(error);
-                });
-
-                this.ws.on('close', () => {
-                    this.isConnecting = false;
-                    this.config.onDisconnected();
-                    this.scheduleReconnect();
-                });
-
-            } catch (error) {
-                this.isConnecting = false;
-                reject(error);
+    // Override to add headers for Extended API access
+    protected getWebSocketOptions(): import('ws').ClientOptions {
+        return {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Origin': 'https://extended.exchange',
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache',
             }
-        });
+        };
     }
 
     protected onMessage(data: WebSocket.RawData): void {
