@@ -88,8 +88,10 @@ export function Dashboard({
                 onExchangeToggle={handleExchangeToggle}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                favorites={favorites}
+                onFavoriteToggle={handleFavoriteToggle}
                 showFavoritesOnly={showFavoritesOnly}
-                onShowFavoritesOnlyChange={setShowFavoritesOnly}
+                onShowFavoritesToggle={() => setShowFavoritesOnly(!showFavoritesOnly)}
             />
 
             <div className={styles.mainContent}>

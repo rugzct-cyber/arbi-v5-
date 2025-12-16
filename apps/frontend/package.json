@@ -11,10 +11,10 @@
     },
     "dependencies": {
         "@arbitrage/shared": "*",
-        "lightweight-charts": "^5.0.9",
         "next": "^14.0.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
+        "recharts": "^3.6.0",
         "socket.io-client": "^4.7.0"
     },
     "devDependencies": {
