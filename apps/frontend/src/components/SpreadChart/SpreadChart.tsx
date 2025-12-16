@@ -179,6 +179,12 @@ export function SpreadChart({ symbol, buyExchange, sellExchange, currentSpread, 
                             />
                             <Tooltip content={<CustomTooltip />} />
                             <ReferenceLine
+                                y={0}
+                                stroke="#ef4444"
+                                strokeDasharray="3 3"
+                                label={{ value: '0%', fill: '#ef4444', fontSize: 10, position: 'left' }}
+                            />
+                            <ReferenceLine
                                 y={stats.avg}
                                 stroke="#22c55e"
                                 strokeDasharray="5 5"

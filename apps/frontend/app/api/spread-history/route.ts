@@ -107,12 +107,10 @@ export async function GET(request: NextRequest) {
 
             if (bidPrice && askPrice > 0) {
                 const spread = ((bidPrice - askPrice) / askPrice) * 100;
-                if (spread >= 0) {
-                    data.push({
-                        time,
-                        spread: Math.round(spread * 10000) / 10000
-                    });
-                }
+                data.push({
+                    time,
+                    spread: Math.round(spread * 10000) / 10000
+                });
             }
         });
 
