@@ -179,10 +179,12 @@ export default function PositionsPage() {
         <div className={styles.container}>
             {/* Header */}
             <header className={styles.header}>
-                <h1>📊 Position Manager</h1>
-                <div className={styles.status}>
-                    <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
-                    {isConnected ? 'Connecté' : 'Déconnecté'}
+                <div className={styles.headerLeft}>
+                    <h1>📊 Position Manager</h1>
+                    <div className={styles.status}>
+                        <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
+                        {isConnected ? 'Connecté' : 'Déconnecté'}
+                    </div>
                 </div>
                 <a href="/" className={styles.backLink}>← Dashboard</a>
             </header>

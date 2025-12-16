@@ -1,30 +1,39 @@
+/* Position Manager - Unified with Dashboard Styles */
+
 .container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-    color: #f8fafc;
+    background: var(--background);
+    color: var(--foreground);
 }
 
 .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 24px;
-    padding: 16px 24px;
-    background: rgba(15, 23, 42, 0.8);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    justify-content: space-between;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .header h1 {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--foreground);
+    margin: 0;
 }
 
 .status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: #94a3b8;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
 }
 
 .statusDot {
@@ -34,19 +43,19 @@
 }
 
 .connected {
-    background: #22c55e;
-    box-shadow: 0 0 8px #22c55e;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
 }
 
 .disconnected {
-    background: #ef4444;
+    background: var(--destructive);
 }
 
 .backLink {
-    margin-left: auto;
-    color: #3b82f6;
+    color: var(--primary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .backLink:hover {
@@ -55,8 +64,8 @@
 
 .content {
     display: flex;
-    gap: 24px;
-    padding: 24px;
+    gap: 1rem;
+    padding: 1rem;
     height: calc(100vh - 60px);
 }
 
@@ -64,130 +73,142 @@
     width: 320px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .formCard {
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 12px;
-    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
 }
 
 .formCard h2 {
-    font-size: 14px;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #94a3b8;
-    margin-bottom: 16px;
+    color: var(--muted-foreground);
+    margin-bottom: 1rem;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .formGroup {
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
 }
 
 .formGroup label {
     display: block;
-    font-size: 12px;
-    color: #64748b;
-    margin-bottom: 4px;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-bottom: 0.25rem;
 }
 
 .formGroup input,
 .formGroup select {
     width: 100%;
-    padding: 8px 12px;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(71, 85, 105, 0.5);
-    border-radius: 6px;
-    color: #f8fafc;
-    font-size: 14px;
+    padding: 0.5rem 0.75rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.875rem;
 }
 
 .formGroup input:focus,
 .formGroup select:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--ring);
 }
 
 .addBtn {
     width: 100%;
-    padding: 10px;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    padding: 0.625rem;
+    background: var(--primary);
     border: none;
-    border-radius: 6px;
-    color: white;
+    border-radius: var(--radius);
+    color: var(--primary-foreground);
     font-weight: 600;
+    font-size: 0.875rem;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease;
 }
 
 .addBtn:hover {
-    opacity: 0.9;
+    background: var(--ring);
+    transform: scale(1.02);
+}
+
+.addBtn:active {
+    transform: scale(0.98);
 }
 
 .positionList {
     flex: 1;
     overflow-y: auto;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 12px;
-    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
 }
 
 .positionList h2 {
-    font-size: 14px;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #94a3b8;
-    margin-bottom: 12px;
+    color: var(--muted-foreground);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .emptyText {
-    color: #64748b;
-    font-size: 14px;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
     text-align: center;
-    padding: 24px;
+    padding: 1.5rem;
 }
 
 .positionCard {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(71, 85, 105, 0.3);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 8px;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .positionCard:hover {
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: var(--ring);
+    background: rgba(99, 102, 241, 0.1);
 }
 
 .positionCard.selected {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.15);
 }
 
 .positionHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .tokenName {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--foreground);
 }
 
 .deleteBtn {
     background: transparent;
     border: none;
-    color: #ef4444;
+    color: var(--destructive);
     cursor: pointer;
-    font-size: 14px;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius);
+    transition: background 0.2s;
 }
 
 .deleteBtn:hover {
@@ -196,127 +217,132 @@
 
 .positionDetails {
     display: flex;
-    gap: 16px;
-    font-size: 11px;
-    color: #64748b;
+    gap: 1rem;
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
     text-transform: uppercase;
 }
 
 .entrySpread {
-    font-size: 12px;
-    color: #22c55e;
-    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    margin-top: 0.5rem;
 }
 
 .mainPanel {
     flex: 1;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 12px;
-    padding: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
     overflow-y: auto;
 }
 
 .monitorHeader {
-    margin-bottom: 24px;
+    margin-bottom: 1.5rem;
 }
 
 .monitorHeader h2 {
-    font-size: 28px;
+    font-size: 1.75rem;
     font-weight: 700;
-    color: #f8fafc;
-    margin-bottom: 8px;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
 }
 
 .strategy {
-    font-size: 12px;
-    color: #64748b;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .statsGrid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .statCard {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(71, 85, 105, 0.3);
-    border-radius: 8px;
-    padding: 16px;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
     text-align: center;
 }
 
 .statLabel {
     display: block;
-    font-size: 10px;
-    color: #64748b;
+    font-size: 0.625rem;
+    color: var(--muted-foreground);
     text-transform: uppercase;
-    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
 }
 
 .statValue {
-    font-size: 24px;
+    font-size: 1.25rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--foreground);
+    font-family: 'Monaco', 'Consolas', monospace;
 }
 
 .statValue.positive {
-    color: #22c55e;
+    color: var(--accent);
 }
 
 .statValue.negative {
-    color: #ef4444;
+    color: var(--destructive);
 }
 
 .statSubValue {
     display: block;
-    font-size: 12px;
-    color: #94a3b8;
-    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
 }
 
 .priceDetails {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
 .exchangePrice {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(71, 85, 105, 0.3);
-    border-radius: 8px;
-    padding: 12px;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
 }
 
 .exchangeName {
     display: block;
-    font-size: 12px;
-    color: #3b82f6;
+    font-size: 0.75rem;
+    color: var(--primary);
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .prices {
     display: flex;
-    gap: 16px;
-    font-size: 14px;
-    color: #94a3b8;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    font-family: 'Monaco', 'Consolas', monospace;
 }
 
 .chartContainer {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(71, 85, 105, 0.3);
-    border-radius: 8px;
-    padding: 16px;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
 }
 
 .chartContainer h3 {
-    font-size: 14px;
-    color: #94a3b8;
-    margin-bottom: 16px;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-bottom: 1rem;
 }
 
 .chartPlaceholder {
@@ -324,7 +350,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--muted-foreground);
 }
 
 .emptyState {
@@ -337,12 +363,13 @@
 }
 
 .emptyState h2 {
-    font-size: 24px;
-    color: #64748b;
-    margin-bottom: 8px;
+    font-size: 1.5rem;
+    color: var(--muted-foreground);
+    margin-bottom: 0.5rem;
 }
 
 .emptyState p {
-    color: #475569;
-    font-size: 14px;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    opacity: 0.7;
 }
