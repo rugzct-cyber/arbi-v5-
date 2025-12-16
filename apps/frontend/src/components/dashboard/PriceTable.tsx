@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { PriceUpdate } from '@arbitrage/shared';
 import { SpreadChart } from '@/components/SpreadChart/SpreadChart';
 import styles from './Dashboard.module.css';
@@ -47,6 +48,10 @@ export function PriceTable({
     // Expanded row for chart
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+    // Admin mode
+    const searchParams = useSearchParams();
+    const isAdmin = searchParams.get('admin') === 'true';
+
     // Sort handler
     const handleSort = (column: string) => {
         if (sortColumn === column) {
@@ -75,9 +80,16 @@ export function PriceTable({
                     .filter(([exId]) => selectedExchanges.has(exId))
                     .map(([, price]) => price),
             }))
-            .filter(item => item.exchanges.length >= 2)
+            .filter(item => isAdmin || item.exchanges.length >= 2)
             .map(item => {
                 const validPrices = item.exchanges.filter(p => p.bid > 0 && p.ask > 0);
+
+                // Allow single exchange or invalid prices in admin mode
+                if (!isAdmin && validPrices.length < 2) {
+                    return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
+                }
+
+                // If admin and < 2 valid prices, we still want to show the row, but with 0 spread
                 if (validPrices.length < 2) {
                     return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
                 }
@@ -115,8 +127,8 @@ export function PriceTable({
                     sellExchange: bestSellEx
                 };
             })
-            // Filter out rows with no valid spread (buyExchange/sellExchange empty)
-            .filter(item => item.buyExchange && item.sellExchange)
+            // Filter out rows with no valid spread (unless admin)
+            .filter(item => isAdmin || (item.buyExchange && item.sellExchange))
             .sort((a, b) => {
                 if (sortColumn === 'pair') {
                     const comparison = a.symbol.localeCompare(b.symbol);
