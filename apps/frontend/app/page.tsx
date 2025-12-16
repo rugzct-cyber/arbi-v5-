@@ -10,7 +10,9 @@ export default function HomePage() {
         opportunities,
         exchanges,
         lastRefresh,
-        refreshPrices
+        refreshPrices,
+        refreshInterval,
+        setRefreshInterval
     } = useSocket();
 
     return (
@@ -22,7 +24,10 @@ export default function HomePage() {
                 exchanges={exchanges}
                 lastRefresh={lastRefresh}
                 onRefresh={refreshPrices}
+                refreshInterval={refreshInterval}
+                onRefreshIntervalChange={setRefreshInterval}
             />
         </main>
     );
 }
+

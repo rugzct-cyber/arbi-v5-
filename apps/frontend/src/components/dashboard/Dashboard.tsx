@@ -18,7 +18,17 @@ interface DashboardProps {
     exchanges: ExchangeStatus[];
     lastRefresh: Date;
     onRefresh: () => void;
+    refreshInterval: number;
+    onRefreshIntervalChange: (interval: number) => void;
 }
+
+const REFRESH_OPTIONS = [
+    { label: 'Instant', value: 0 },
+    { label: '5s', value: 5000 },
+    { label: '15s', value: 15000 },
+    { label: '30s', value: 30000 },
+    { label: '1min', value: 60000 },
+];
 
 export function Dashboard({
     isConnected,
@@ -26,7 +36,9 @@ export function Dashboard({
     opportunities,
     exchanges,
     lastRefresh,
-    onRefresh
+    onRefresh,
+    refreshInterval,
+    onRefreshIntervalChange
 }: DashboardProps) {
     // State for filtering
     const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(() => {
@@ -110,6 +122,15 @@ export function Dashboard({
 
                         <div className={styles.headerRight}>
                             <div className={styles.refreshSection}>
+                                <select
+                                    className={styles.refreshSelect}
+                                    value={refreshInterval}
+                                    onChange={(e) => onRefreshIntervalChange(Number(e.target.value))}
+                                >
+                                    {REFRESH_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
                                 <span className={styles.lastRefresh} suppressHydrationWarning>
                                     Updated: {lastRefresh.toLocaleTimeString()}
                                 </span>

@@ -24,12 +24,12 @@ interface PriceTableProps {
     onFavoriteToggle: (symbol: string) => void;
 }
 
-// Helper function for price formatting
+// Helper function for price formatting (removes trailing zeros)
 function formatPrice(p: number): string {
     if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-    if (p >= 0.01) return p.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
-    return p.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
+    if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+    if (p >= 0.01) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+    return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 });
 }
 
 export function PriceTable({
@@ -44,6 +44,7 @@ export function PriceTable({
     // Sorting state
     const [sortColumn, setSortColumn] = useState<string>('spread');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [sortTrigger, setSortTrigger] = useState<number>(0); // Triggers re-sort only on click
 
     // Expanded row for chart
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export function PriceTable({
     const searchParams = useSearchParams();
     const isAdmin = searchParams.get('admin') === 'true';
 
-    // Sort handler
+    // Sort handler - now also triggers the sort
     const handleSort = (column: string) => {
         if (sortColumn === column) {
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -60,10 +61,11 @@ export function PriceTable({
             setSortColumn(column);
             setSortDirection(column === 'spread' ? 'desc' : 'asc');
         }
+        setSortTrigger(prev => prev + 1); // Trigger re-sort
     };
 
-    // Filter and calculate prices
-    const filteredPrices = useMemo((): FilteredPrice[] => {
+    // Calculate prices WITHOUT sorting (updates with data)
+    const calculatedPrices = useMemo((): FilteredPrice[] => {
         return Array.from(prices.entries())
             .filter(([symbol]) => {
                 if (searchQuery && !symbol.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -128,20 +130,54 @@ export function PriceTable({
                 };
             })
             // Filter out rows with no valid spread (unless admin)
-            .filter(item => isAdmin || (item.buyExchange && item.sellExchange))
-            .sort((a, b) => {
-                if (sortColumn === 'pair') {
-                    const comparison = a.symbol.localeCompare(b.symbol);
-                    return sortDirection === 'asc' ? comparison : -comparison;
-                } else if (sortColumn === 'spread') {
-                    return sortDirection === 'asc' ? a.spread - b.spread : b.spread - a.spread;
-                } else {
-                    const aPrice = a.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
-                    const bPrice = b.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
-                    return sortDirection === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+            .filter(item => isAdmin || (item.buyExchange && item.sellExchange));
+    }, [prices, searchQuery, showFavoritesOnly, favorites, selectedExchanges, isAdmin]);
+
+    // Sorted order - only changes when user clicks a column (sortTrigger changes)
+    const [sortedSymbols, setSortedSymbols] = useState<string[]>([]);
+
+    // Update sorted order only on sortTrigger change or when new symbols appear
+    useMemo(() => {
+        const sorted = [...calculatedPrices].sort((a, b) => {
+            if (sortColumn === 'pair') {
+                const comparison = a.symbol.localeCompare(b.symbol);
+                return sortDirection === 'asc' ? comparison : -comparison;
+            } else if (sortColumn === 'spread') {
+                return sortDirection === 'asc' ? a.spread - b.spread : b.spread - a.spread;
+            } else {
+                const aPrice = a.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
+                const bPrice = b.exchanges.find(p => p.exchange === sortColumn)?.bid || 0;
+                return sortDirection === 'asc' ? aPrice - bPrice : bPrice - aPrice;
+            }
+        });
+        setSortedSymbols(sorted.map(p => p.symbol));
+    }, [sortTrigger, sortColumn, sortDirection]);
+
+    // Final display: use sorted order but with fresh data
+    const filteredPrices = useMemo((): FilteredPrice[] => {
+        // Create a map for quick lookup
+        const priceMap = new Map(calculatedPrices.map(p => [p.symbol, p]));
+
+        // If we have a sorted order, use it
+        if (sortedSymbols.length > 0) {
+            const result: FilteredPrice[] = [];
+            for (const symbol of sortedSymbols) {
+                const price = priceMap.get(symbol);
+                if (price) result.push(price);
+            }
+            // Add any new symbols that aren't in sortedSymbols yet
+            for (const price of calculatedPrices) {
+                if (!sortedSymbols.includes(price.symbol)) {
+                    result.push(price);
                 }
-            });
-    }, [prices, searchQuery, showFavoritesOnly, favorites, selectedExchanges, sortColumn, sortDirection]);
+            }
+            return result;
+        }
+
+        // Initial load: sort by spread desc
+        return [...calculatedPrices].sort((a, b) => b.spread - a.spread);
+    }, [calculatedPrices, sortedSymbols]);
+
 
     return (
         <div className={styles.tableContainer}>

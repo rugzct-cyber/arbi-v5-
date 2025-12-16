@@ -77,6 +77,26 @@
     gap: 0.75rem;
 }
 
+.refreshSelect {
+    padding: 0.4rem 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshSelect:hover {
+    border-color: var(--ring);
+}
+
+.refreshSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
 .lastRefresh {
     font-size: 0.75rem;
     color: var(--muted-foreground);

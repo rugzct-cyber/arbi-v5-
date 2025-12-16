@@ -23,10 +23,13 @@ const ALL_EXCHANGES: ExchangeStatus[] = ACTIVE_EXCHANGE_IDS.map(id => ({
     connected: false
 }));
 
-const REFRESH_INTERVAL = 20000; // 20 seconds
+const DEFAULT_REFRESH_INTERVAL = 20000; // 20 seconds
 
 export function useSocket() {
     const [isConnected, setIsConnected] = useState(false);
+
+    // Refresh interval (0 = instant/live)
+    const [refreshInterval, setRefreshInterval] = useState(DEFAULT_REFRESH_INTERVAL);
 
     // Live prices (constantly updated)
     const livePricesRef = useRef<Map<string, Map<string, PriceUpdate>>>(new Map());
@@ -114,22 +117,42 @@ export function useSocket() {
         };
     }, []);
 
-    // Auto-refresh every 5 seconds
+    // Auto-refresh based on selected interval
     useEffect(() => {
-        const interval = setInterval(() => {
-            refreshPrices();
-        }, REFRESH_INTERVAL);
-
         // Initial refresh after 1 second to show something
         const initialTimeout = setTimeout(() => {
             refreshPrices();
         }, 1000);
 
+        // If interval is 0 (instant), refresh on every price update via requestAnimationFrame
+        if (refreshInterval === 0) {
+            let animationId: number;
+            const instantRefresh = () => {
+                refreshPrices();
+                animationId = requestAnimationFrame(instantRefresh);
+            };
+            // Start after a small delay
+            const startTimeout = setTimeout(() => {
+                animationId = requestAnimationFrame(instantRefresh);
+            }, 1500);
+
+            return () => {
+                clearTimeout(initialTimeout);
+                clearTimeout(startTimeout);
+                cancelAnimationFrame(animationId);
+            };
+        }
+
+        // Normal interval refresh
+        const interval = setInterval(() => {
+            refreshPrices();
+        }, refreshInterval);
+
         return () => {
             clearInterval(interval);
             clearTimeout(initialTimeout);
         };
-    }, [refreshPrices]);
+    }, [refreshPrices, refreshInterval]);
 
     const subscribeToSymbols = useCallback((symbols: string[]) => {
         socketRef.current?.emit('subscribe:symbols', symbols);
@@ -146,7 +169,10 @@ export function useSocket() {
         exchanges,
         lastRefresh,
         refreshPrices,
+        refreshInterval,
+        setRefreshInterval,
         subscribeToSymbols,
         unsubscribeFromSymbols,
     };
 }
+
