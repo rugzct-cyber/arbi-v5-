@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 
-export default function HomePage() {
+function DashboardContent() {
     const {
         isConnected,
         prices,
@@ -16,18 +17,25 @@ export default function HomePage() {
     } = useSocket();
 
     return (
-        <main className="min-h-screen">
-            <Dashboard
-                isConnected={isConnected}
-                prices={prices}
-                opportunities={opportunities}
-                exchanges={exchanges}
-                lastRefresh={lastRefresh}
-                onRefresh={refreshPrices}
-                refreshInterval={refreshInterval}
-                onRefreshIntervalChange={setRefreshInterval}
-            />
-        </main>
+        <Dashboard
+            isConnected={isConnected}
+            prices={prices}
+            opportunities={opportunities}
+            exchanges={exchanges}
+            lastRefresh={lastRefresh}
+            onRefresh={refreshPrices}
+            refreshInterval={refreshInterval}
+            onRefreshIntervalChange={setRefreshInterval}
+        />
     );
 }
 
+export default function HomePage() {
+    return (
+        <main className="min-h-screen">
+            <Suspense fallback={<div style={{ padding: '2rem', color: '#888' }}>Loading Dashboard...</div>}>
+                <DashboardContent />
+            </Suspense>
+        </main>
+    );
+}
