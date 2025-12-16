@@ -1,0 +1,341 @@
+.container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    color: #f8fafc;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 24px;
+    background: rgba(15, 23, 42, 0.8);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.connected {
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+}
+
+.disconnected {
+    background: #ef4444;
+}
+
+.backLink {
+    margin-left: auto;
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.backLink:hover {
+    text-decoration: underline;
+}
+
+.content {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    height: calc(100vh - 60px);
+}
+
+.sidebar {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.formCard {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.formCard h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+}
+
+.formGroup {
+    margin-bottom: 12px;
+}
+
+.formGroup label {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.formGroup input,
+.formGroup select {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 6px;
+    color: #f8fafc;
+    font-size: 14px;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.addBtn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.addBtn:hover {
+    opacity: 0.9;
+}
+
+.positionList {
+    flex: 1;
+    overflow-y: auto;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.positionList h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+
+.emptyText {
+    color: #64748b;
+    font-size: 14px;
+    text-align: center;
+    padding: 24px;
+}
+
+.positionCard {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.positionCard:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.positionCard.selected {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.positionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tokenName {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.deleteBtn {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.positionDetails {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.entrySpread {
+    font-size: 12px;
+    color: #22c55e;
+    margin-top: 8px;
+}
+
+.mainPanel {
+    flex: 1;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 12px;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.monitorHeader {
+    margin-bottom: 24px;
+}
+
+.monitorHeader h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 8px;
+}
+
+.strategy {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.statLabel {
+    display: block;
+    font-size: 10px;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.statValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.statValue.positive {
+    color: #22c55e;
+}
+
+.statValue.negative {
+    color: #ef4444;
+}
+
+.priceDetails {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.exchangePrice {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.exchangeName {
+    display: block;
+    font-size: 12px;
+    color: #3b82f6;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.prices {
+    display: flex;
+    gap: 16px;
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.chartContainer {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.chartContainer h3 {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 16px;
+}
+
+.chartPlaceholder {
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+.emptyState h2 {
+    font-size: 24px;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.emptyState p {
+    color: #475569;
+    font-size: 14px;
+}

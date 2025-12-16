@@ -1,0 +1,334 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { useSocket } from '@/hooks/useSocket';
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    ReferenceLine,
+} from 'recharts';
+import styles from './positions.module.css';
+
+interface Position {
+    id: string;
+    token: string;
+    longExchange: string;
+    shortExchange: string;
+    entryPrice: number;
+    entrySpread: number;
+    timestamp: number;
+}
+
+interface SpreadPoint {
+    time: string;
+    exitSpread: number;
+}
+
+const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
+
+export default function PositionsPage() {
+    const { prices, isConnected, exchanges } = useSocket();
+
+    // Form state
+    const [token, setToken] = useState('');
+    const [longExchange, setLongExchange] = useState('');
+    const [shortExchange, setShortExchange] = useState('');
+    const [entrySpread, setEntrySpread] = useState('');
+
+    // Positions state
+    const [positions, setPositions] = useState<Position[]>([]);
+    const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+
+    // Spread history for chart
+    const [spreadHistory, setSpreadHistory] = useState<SpreadPoint[]>([]);
+
+    // Load positions from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('positions');
+        if (saved) {
+            setPositions(JSON.parse(saved));
+        }
+    }, []);
+
+    // Save positions to localStorage
+    useEffect(() => {
+        localStorage.setItem('positions', JSON.stringify(positions));
+    }, [positions]);
+
+    // Calculate exit spread for selected position
+    const exitSpreadData = useMemo(() => {
+        if (!selectedPosition) return null;
+
+        const tokenPrices = prices.get(selectedPosition.token);
+        if (!tokenPrices) return null;
+
+        const longPrice = tokenPrices.get(selectedPosition.longExchange);
+        const shortPrice = tokenPrices.get(selectedPosition.shortExchange);
+
+        if (!longPrice || !shortPrice) return null;
+
+        // To close position:
+        // - Sell the LONG position → receive BID price
+        // - Buy back the SHORT position → pay ASK price
+        // Exit spread = (longBid - shortAsk) / shortAsk * 100
+        const exitSpread = shortPrice.ask > 0
+            ? ((longPrice.bid - shortPrice.ask) / shortPrice.ask * 100)
+            : 0;
+
+        return {
+            longBid: longPrice.bid,
+            longAsk: longPrice.ask,
+            shortBid: shortPrice.bid,
+            shortAsk: shortPrice.ask,
+            exitSpread: Math.round(exitSpread * 10000) / 10000,
+            pnl: selectedPosition.entrySpread + exitSpread,
+        };
+    }, [selectedPosition, prices]);
+
+    // Update spread history for chart
+    useEffect(() => {
+        if (exitSpreadData && selectedPosition) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            setSpreadHistory(prev => {
+                const newHistory = [...prev, { time: timeStr, exitSpread: exitSpreadData.exitSpread }];
+                // Keep last 60 points (5 minutes at 5s interval)
+                return newHistory.slice(-60);
+            });
+        }
+    }, [exitSpreadData, selectedPosition]);
+
+    // Add new position
+    const handleAddPosition = () => {
+        if (!token || !longExchange || !shortExchange || !entrySpread) {
+            alert('Remplis tous les champs');
+            return;
+        }
+
+        const newPosition: Position = {
+            id: Date.now().toString(),
+            token: token.toUpperCase().includes('-USD') ? token.toUpperCase() : `${token.toUpperCase()}-USD`,
+            longExchange,
+            shortExchange,
+            entryPrice: 0, // Could be calculated from current prices
+            entrySpread: parseFloat(entrySpread),
+            timestamp: Date.now(),
+        };
+
+        setPositions(prev => [...prev, newPosition]);
+        setToken('');
+        setLongExchange('');
+        setShortExchange('');
+        setEntrySpread('');
+    };
+
+    // Delete position
+    const handleDeletePosition = (id: string) => {
+        setPositions(prev => prev.filter(p => p.id !== id));
+        if (selectedPosition?.id === id) {
+            setSelectedPosition(null);
+            setSpreadHistory([]);
+        }
+    };
+
+    // Select position for monitoring
+    const handleSelectPosition = (position: Position) => {
+        setSelectedPosition(position);
+        setSpreadHistory([]);
+    };
+
+    return (
+        <div className={styles.container}>
+            {/* Header */}
+            <header className={styles.header}>
+                <h1>📊 Position Manager</h1>
+                <div className={styles.status}>
+                    <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
+                    {isConnected ? 'Connecté' : 'Déconnecté'}
+                </div>
+                <a href="/" className={styles.backLink}>← Dashboard</a>
+            </header>
+
+            <div className={styles.content}>
+                {/* Left: Position List & Form */}
+                <div className={styles.sidebar}>
+                    {/* Add Position Form */}
+                    <div className={styles.formCard}>
+                        <h2>Nouvelle Position</h2>
+                        <div className={styles.formGroup}>
+                            <label>Token</label>
+                            <input
+                                type="text"
+                                placeholder="BTC, ETH, SOL..."
+                                value={token}
+                                onChange={(e) => setToken(e.target.value)}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Exchange LONG</label>
+                            <select value={longExchange} onChange={(e) => setLongExchange(e.target.value)}>
+                                <option value="">Sélectionner...</option>
+                                {EXCHANGES.map(ex => (
+                                    <option key={ex} value={ex}>{ex.toUpperCase()}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Exchange SHORT</label>
+                            <select value={shortExchange} onChange={(e) => setShortExchange(e.target.value)}>
+                                <option value="">Sélectionner...</option>
+                                {EXCHANGES.map(ex => (
+                                    <option key={ex} value={ex}>{ex.toUpperCase()}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Spread d'entrée (%)</label>
+                            <input
+                                type="number"
+                                step="0.0001"
+                                placeholder="0.50"
+                                value={entrySpread}
+                                onChange={(e) => setEntrySpread(e.target.value)}
+                            />
+                        </div>
+                        <button className={styles.addBtn} onClick={handleAddPosition}>
+                            + Ajouter Position
+                        </button>
+                    </div>
+
+                    {/* Position List */}
+                    <div className={styles.positionList}>
+                        <h2>Positions Ouvertes ({positions.length})</h2>
+                        {positions.length === 0 ? (
+                            <p className={styles.emptyText}>Aucune position</p>
+                        ) : (
+                            positions.map(pos => (
+                                <div
+                                    key={pos.id}
+                                    className={`${styles.positionCard} ${selectedPosition?.id === pos.id ? styles.selected : ''}`}
+                                    onClick={() => handleSelectPosition(pos)}
+                                >
+                                    <div className={styles.positionHeader}>
+                                        <span className={styles.tokenName}>{pos.token.replace('-USD', '')}</span>
+                                        <button
+                                            className={styles.deleteBtn}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeletePosition(pos.id);
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <div className={styles.positionDetails}>
+                                        <span>LONG {pos.longExchange.toUpperCase()}</span>
+                                        <span>SHORT {pos.shortExchange.toUpperCase()}</span>
+                                    </div>
+                                    <div className={styles.entrySpread}>
+                                        Entrée: {pos.entrySpread.toFixed(4)}%
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: Exit Spread Monitor */}
+                <div className={styles.mainPanel}>
+                    {selectedPosition ? (
+                        <>
+                            <div className={styles.monitorHeader}>
+                                <h2>{selectedPosition.token.replace('-USD', '')}</h2>
+                                <span className={styles.strategy}>
+                                    LONG {selectedPosition.longExchange.toUpperCase()} /
+                                    SHORT {selectedPosition.shortExchange.toUpperCase()}
+                                </span>
+                            </div>
+
+                            {/* Stats Cards */}
+                            <div className={styles.statsGrid}>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>SPREAD ENTRÉE</span>
+                                    <span className={styles.statValue}>{selectedPosition.entrySpread.toFixed(4)}%</span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>SPREAD SORTIE</span>
+                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
+                                        {exitSpreadData?.exitSpread.toFixed(4) || '-'}%
+                                    </span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>PNL ESTIMÉ</span>
+                                    <span className={`${styles.statValue} ${(exitSpreadData?.pnl || 0) > 0 ? styles.positive : styles.negative}`}>
+                                        {exitSpreadData?.pnl.toFixed(4) || '-'}%
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Price Details */}
+                            <div className={styles.priceDetails}>
+                                <div className={styles.exchangePrice}>
+                                    <span className={styles.exchangeName}>{selectedPosition.longExchange.toUpperCase()} (LONG)</span>
+                                    <div className={styles.prices}>
+                                        <span>Bid: ${exitSpreadData?.longBid.toFixed(4) || '-'}</span>
+                                        <span>Ask: ${exitSpreadData?.longAsk.toFixed(4) || '-'}</span>
+                                    </div>
+                                </div>
+                                <div className={styles.exchangePrice}>
+                                    <span className={styles.exchangeName}>{selectedPosition.shortExchange.toUpperCase()} (SHORT)</span>
+                                    <div className={styles.prices}>
+                                        <span>Bid: ${exitSpreadData?.shortBid.toFixed(4) || '-'}</span>
+                                        <span>Ask: ${exitSpreadData?.shortAsk.toFixed(4) || '-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Exit Spread Chart */}
+                            <div className={styles.chartContainer}>
+                                <h3>Évolution du Spread de Sortie</h3>
+                                {spreadHistory.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <AreaChart data={spreadHistory}>
+                                            <defs>
+                                                <linearGradient id="exitGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                            <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} />
+                                            <YAxis stroke="#64748b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
+                                            <Tooltip
+                                                contentStyle={{ background: '#1e293b', border: '1px solid #3b82f6' }}
+                                                formatter={(value: number) => [`${value.toFixed(4)}%`, 'Exit Spread']}
+                                            />
+                                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
+                                            <ReferenceLine y={-selectedPosition.entrySpread} stroke="#22c55e" strokeDasharray="5 5" label={{ value: 'Breakeven', fill: '#22c55e', fontSize: 10 }} />
+                                            <Area type="monotone" dataKey="exitSpread" stroke="#3b82f6" fill="url(#exitGradient)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className={styles.chartPlaceholder}>
+                                        Collecte des données en cours...
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <h2>👈 Sélectionne une position</h2>
+                            <p>Clique sur une position à gauche pour voir le spread de sortie en temps réel</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
