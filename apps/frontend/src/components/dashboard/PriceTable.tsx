@@ -200,15 +200,17 @@ export function PriceTable({
                                     </td>
                                     {activeExchangeIds.map(exId => {
                                         const price = exPrices.find(p => p.exchange === exId);
+                                        const isLongExchange = exId === buyExchange;
+                                        const isShortExchange = exId === sellExchange;
                                         return (
                                             <td key={exId} className={styles.tdPrice}>
                                                 {price ? (
                                                     <div className={styles.priceCell}>
-                                                        <span className={styles.bidPrice}>
+                                                        <span className={isShortExchange ? styles.bidPriceHighlight : styles.bidPriceGray}>
                                                             ${formatPrice(price.bid)}
                                                         </span>
                                                         <span className={styles.priceSeparator}>/</span>
-                                                        <span className={styles.askPrice}>
+                                                        <span className={isLongExchange ? styles.askPriceHighlight : styles.askPriceGray}>
                                                             ${formatPrice(price.ask)}
                                                         </span>
                                                     </div>
