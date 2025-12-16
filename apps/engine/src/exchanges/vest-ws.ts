@@ -19,19 +19,12 @@ export class VestWebSocket extends BaseExchangeAdapter {
     readonly exchangeId = 'vest';
     readonly wsUrl = 'wss://ws-prod.hz.vestmarkets.com/ws-api?version=1.0';
 
-    // Vest symbols - confirmed available tokens
+    // Vest symbols - CRYPTO ONLY (stocks/indices block depth subscriptions!)
     private readonly symbols = [
-        // Crypto
         'BTC-PERP', 'ETH-PERP', 'SOL-PERP', 'XRP-PERP', 'BNB-PERP', 'DOGE-PERP', 'AVAX-PERP',
         'SUI-PERP', 'TON-PERP', 'TAO-PERP', 'NEAR-PERP', 'AAVE-PERP', 'HYPE-PERP', 'BERA-PERP',
-        'WLD-PERP', 'WIF-PERP', 'JUP-PERP', 'ENA-PERP', 'FARTCOIN-PERP', 'GRASS-PERP', 'ONDO-PERP',
-        'KAITO-PERP', 'ASTER-PERP', 'ZRO-PERP', 'ZK-PERP', 'KBONK-PERP', 'KPEPE-PERP', 'PAXG-PERP',
-        // Stocks
-        'AAPL-PERP', 'TSLA-PERP', 'NVDA-PERP', 'MSFT-PERP', 'GOOGL-PERP', 'AMZN-PERP', 'META-PERP',
-        'PLTR-PERP', 'HOOD-PERP', 'COIN-PERP', 'AMD-PERP', 'NFLX-PERP', 'MSTR-PERP', 'ORCL-PERP',
-        'INTC-PERP', 'CRCL-PERP',
-        // Indices & Forex
-        'SPX500-PERP', 'QQQ-PERP', 'EUR-PERP',
+        'WLD-PERP', 'WIF-PERP', 'JUP-PERP', 'ENA-PERP', 'FARTCOIN-PERP', 'ONDO-PERP',
+        'KAITO-PERP', 'ASTER-PERP', 'ZRO-PERP', 'ZK-PERP', 'PAXG-PERP',
     ];
 
     protected onOpen(): void {
@@ -41,7 +34,9 @@ export class VestWebSocket extends BaseExchangeAdapter {
 
     // Override connect to add headers
     async connect(): Promise<void> {
+        console.log(`[${this.exchangeId}] Attempting to connect to ${this.wsUrl}...`);
         if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
+            console.log(`[${this.exchangeId}] Already connected or connecting, skipping`);
             return;
         }
 
@@ -76,8 +71,9 @@ export class VestWebSocket extends BaseExchangeAdapter {
                 });
 
                 this.ws.on('error', (error) => {
-                    if (error.message.includes('530') || error.message.includes('403')) {
-                        console.error(`[${this.exchangeId}] Connection rejected (${error.message}). Site might be frozen or blocking.`);
+                    console.error(`[${this.exchangeId}] WebSocket error:`, error.message || error);
+                    if (error.message?.includes('530') || error.message?.includes('403')) {
+                        console.error(`[${this.exchangeId}] Connection rejected. Site might be frozen or blocking.`);
                     }
                     this.isConnecting = false;
                     this.config.onError(error);
@@ -113,7 +109,7 @@ export class VestWebSocket extends BaseExchangeAdapter {
     protected onMessage(data: WebSocket.RawData): void {
         try {
             // Debug log for raw message to verify subscription success
-            // console.log(`[${this.exchangeId}] Raw:`, data.toString().substring(0, 300));
+            console.log(`[${this.exchangeId}] Raw:`, data.toString().substring(0, 300));
 
             const message = JSON.parse(data.toString());
 
