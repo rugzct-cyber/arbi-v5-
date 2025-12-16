@@ -146,6 +146,14 @@ export function PriceTable({
     return (
         <div className={styles.tableContainer}>
             <table className={styles.priceTable}>
+                <colgroup>
+                    <col style={{ width: '50px' }} />
+                    <col style={{ width: '50px' }} />
+                    <col style={{ width: '70px' }} />
+                    {activeExchangeIds.map(exId => (
+                        <col key={exId} />
+                    ))}
+                </colgroup>
                 <thead>
                     <tr>
                         <th className={`${styles.thPair} ${styles.sortable}`} onClick={() => handleSort('pair')}>
@@ -200,10 +208,8 @@ export function PriceTable({
                                         <div className={styles.strategyContent}>
                                             {buyExchange && sellExchange ? (
                                                 <>
-                                                    <span className={styles.strategyLabel}>LONG</span>
-                                                    <span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span>
-                                                    <span className={styles.strategyLabel}>SHORT</span>
-                                                    <span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span>
+                                                    <div><span className={styles.strategyLabel}>LONG </span><span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span></div>
+                                                    <div><span className={styles.strategyLabel}>SHORT </span><span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span></div>
                                                 </>
                                             ) : (
                                                 <span className={styles.noPrice}>-</span>

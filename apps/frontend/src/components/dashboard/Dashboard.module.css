@@ -118,9 +118,10 @@
     overflow: hidden;
 }
 
-/* Price Table - Professional Grid Layout */
+/* Price Table - Fixed layout for locked column widths */
 .priceTable {
     width: 100%;
+    table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
 }
@@ -146,23 +147,29 @@
     vertical-align: middle;
 }
 
-/* Fixed column widths for alignment */
+/* Fixed column widths - LOCKED */
 .thPair {
-    width: 100px;
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
     text-align: left !important;
-    padding-left: 16px !important;
+    padding-left: 12px !important;
 }
 
 .thSpread {
-    width: 80px;
+    width: 45px;
+    min-width: 45px;
+    max-width: 45px;
 }
 
 .thStrategy {
-    width: 160px;
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
 }
 
 .thExchange {
-    width: 120px;
+    width: 100px;
 }
 
 /* Sortable columns */
@@ -222,10 +229,13 @@
     height: auto;
 }
 
-/* Pair Column */
+/* Pair Column - Fixed width */
 .tdPair {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
     text-align: left !important;
-    padding-left: 16px !important;
+    padding-left: 12px !important;
 }
 
 .pairContent {
@@ -258,8 +268,11 @@
     letter-spacing: 0.02em;
 }
 
-/* Spread Column - Prominent */
+/* Spread Column - Fixed width */
 .tdSpread {
+    width: 45px;
+    min-width: 45px;
+    max-width: 45px;
     font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
     font-size: 14px;
     color: var(--muted-foreground);
@@ -272,13 +285,17 @@
     font-size: 15px;
 }
 
-/* Strategy Column */
+/* Strategy Column - Fixed width, Vertical layout */
 .tdStrategy {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
     text-align: center;
 }
 
 .strategyContent {
-    display: inline-flex;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 4px;
     font-size: 9px;
@@ -325,22 +342,26 @@
 .bidPriceHighlight {
     color: #ef4444;
     font-weight: 700;
+    font-size: 14px;
     text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 .askPriceHighlight {
     color: #22c55e;
     font-weight: 700;
+    font-size: 14px;
     text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
 }
 
 /* Gray prices (non-strategy exchanges) */
 .bidPriceGray {
     color: #64748b;
+    font-size: 10px;
 }
 
 .askPriceGray {
     color: #64748b;
+    font-size: 10px;
 }
 
 .priceSeparator {
