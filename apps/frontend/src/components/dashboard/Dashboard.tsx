@@ -105,8 +105,6 @@ export function Dashboard({
 
                         <nav className={styles.nav}>
                             <a href="/" className={styles.navLink}>Dashboard</a>
-                            <a href="/history" className={styles.navLinkInactive}>History</a>
-                            <a href="/settings" className={styles.navLinkInactive}>Settings</a>
                         </nav>
 
                         <div className={styles.headerRight}>
