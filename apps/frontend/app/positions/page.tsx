@@ -38,7 +38,7 @@ export default function PositionsPage() {
     const [token, setToken] = useState('');
     const [longExchange, setLongExchange] = useState('');
     const [shortExchange, setShortExchange] = useState('');
-    const [entrySpread, setEntrySpread] = useState('');
+    const [entryPrice, setEntryPrice] = useState('');
 
     // Positions state
     const [positions, setPositions] = useState<Position[]>([]);
@@ -80,13 +80,24 @@ export default function PositionsPage() {
             ? ((longPrice.bid - shortPrice.ask) / shortPrice.ask * 100)
             : 0;
 
+        // Current closing price (what we get if we exit now)
+        // Long: we receive longBid, Short: we pay shortAsk
+        // Net = longBid - shortAsk (should be positive for profit)
+        const currentPrice = longPrice.bid;
+
+        // PnL = (currentPrice - entryPrice) / entryPrice * 100
+        const pnl = selectedPosition.entryPrice > 0
+            ? ((currentPrice - selectedPosition.entryPrice) / selectedPosition.entryPrice * 100)
+            : 0;
+
         return {
             longBid: longPrice.bid,
             longAsk: longPrice.ask,
             shortBid: shortPrice.bid,
             shortAsk: shortPrice.ask,
             exitSpread: Math.round(exitSpread * 10000) / 10000,
-            pnl: selectedPosition.entrySpread + exitSpread,
+            currentPrice,
+            pnl: Math.round(pnl * 10000) / 10000,
         };
     }, [selectedPosition, prices]);
 
@@ -106,7 +117,7 @@ export default function PositionsPage() {
 
     // Add new position
     const handleAddPosition = () => {
-        if (!token || !longExchange || !shortExchange || !entrySpread) {
+        if (!token || !longExchange || !shortExchange || !entryPrice) {
             alert('Remplis tous les champs');
             return;
         }
@@ -116,8 +127,8 @@ export default function PositionsPage() {
             token: token.toUpperCase().includes('-USD') ? token.toUpperCase() : `${token.toUpperCase()}-USD`,
             longExchange,
             shortExchange,
-            entryPrice: 0, // Could be calculated from current prices
-            entrySpread: parseFloat(entrySpread),
+            entryPrice: parseFloat(entryPrice),
+            entrySpread: 0, // Will be calculated from current prices if needed
             timestamp: Date.now(),
         };
 
@@ -125,7 +136,7 @@ export default function PositionsPage() {
         setToken('');
         setLongExchange('');
         setShortExchange('');
-        setEntrySpread('');
+        setEntryPrice('');
     };
 
     // Delete position
@@ -189,13 +200,13 @@ export default function PositionsPage() {
                             </select>
                         </div>
                         <div className={styles.formGroup}>
-                            <label>Spread d'entrée (%)</label>
+                            <label>Prix d'entrée ($)</label>
                             <input
                                 type="number"
-                                step="0.0001"
-                                placeholder="0.50"
-                                value={entrySpread}
-                                onChange={(e) => setEntrySpread(e.target.value)}
+                                step="0.01"
+                                placeholder="100.00"
+                                value={entryPrice}
+                                onChange={(e) => setEntryPrice(e.target.value)}
                             />
                         </div>
                         <button className={styles.addBtn} onClick={handleAddPosition}>
@@ -232,7 +243,7 @@ export default function PositionsPage() {
                                         <span>SHORT {pos.shortExchange.toUpperCase()}</span>
                                     </div>
                                     <div className={styles.entrySpread}>
-                                        Entrée: {pos.entrySpread.toFixed(4)}%
+                                        Prix: ${pos.entryPrice.toFixed(2)}
                                     </div>
                                 </div>
                             ))
@@ -255,8 +266,12 @@ export default function PositionsPage() {
                             {/* Stats Cards */}
                             <div className={styles.statsGrid}>
                                 <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>SPREAD ENTRÉE</span>
-                                    <span className={styles.statValue}>{selectedPosition.entrySpread.toFixed(4)}%</span>
+                                    <span className={styles.statLabel}>PRIX ENTRÉE</span>
+                                    <span className={styles.statValue}>${selectedPosition.entryPrice.toFixed(2)}</span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>PRIX ACTUEL</span>
+                                    <span className={styles.statValue}>${exitSpreadData?.currentPrice?.toFixed(2) || '-'}</span>
                                 </div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>SPREAD SORTIE</span>
@@ -307,10 +322,9 @@ export default function PositionsPage() {
                                             <YAxis stroke="#64748b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
                                             <Tooltip
                                                 contentStyle={{ background: '#1e293b', border: '1px solid #3b82f6' }}
-                                                formatter={(value: number) => [`${value.toFixed(4)}%`, 'Exit Spread']}
+                                                formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(4)}%`, 'Exit Spread'] : ['-', 'Exit Spread']}
                                             />
-                                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
-                                            <ReferenceLine y={-selectedPosition.entrySpread} stroke="#22c55e" strokeDasharray="5 5" label={{ value: 'Breakeven', fill: '#22c55e', fontSize: 10 }} />
+                                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" label={{ value: '0%', fill: '#ef4444', fontSize: 10 }} />
                                             <Area type="monotone" dataKey="exitSpread" stroke="#3b82f6" fill="url(#exitGradient)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
