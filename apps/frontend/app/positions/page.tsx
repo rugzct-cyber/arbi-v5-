@@ -2,16 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSocket } from '@/hooks/useSocket';
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    ReferenceLine,
-} from 'recharts';
+import { ExitSpreadChart } from '@/components/ExitSpreadChart/ExitSpreadChart';
 import styles from './positions.module.css';
 
 interface Position {
@@ -19,14 +10,19 @@ interface Position {
     token: string;
     longExchange: string;
     shortExchange: string;
-    entryPrice: number;
+    entryPriceLong: number;
+    entryPriceShort: number;
+    tokenAmount: number;
     entrySpread: number;
     timestamp: number;
 }
 
 interface SpreadPoint {
     time: string;
+    timestamp: number;
     exitSpread: number;
+    longBid: number;
+    shortAsk: number;
 }
 
 const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
@@ -38,11 +34,14 @@ export default function PositionsPage() {
     const [token, setToken] = useState('');
     const [longExchange, setLongExchange] = useState('');
     const [shortExchange, setShortExchange] = useState('');
-    const [entryPrice, setEntryPrice] = useState('');
+    const [entryPriceLong, setEntryPriceLong] = useState('');
+    const [entryPriceShort, setEntryPriceShort] = useState('');
+    const [tokenAmount, setTokenAmount] = useState('');
 
     // Positions state
     const [positions, setPositions] = useState<Position[]>([]);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Spread history for chart
     const [spreadHistory, setSpreadHistory] = useState<SpreadPoint[]>([]);
@@ -51,14 +50,21 @@ export default function PositionsPage() {
     useEffect(() => {
         const saved = localStorage.getItem('positions');
         if (saved) {
-            setPositions(JSON.parse(saved));
+            try {
+                setPositions(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse saved positions:', e);
+            }
         }
+        setIsInitialized(true);
     }, []);
 
-    // Save positions to localStorage
+    // Save positions to localStorage (only after initial load)
     useEffect(() => {
-        localStorage.setItem('positions', JSON.stringify(positions));
-    }, [positions]);
+        if (isInitialized) {
+            localStorage.setItem('positions', JSON.stringify(positions));
+        }
+    }, [positions, isInitialized]);
 
     // Calculate exit spread for selected position
     const exitSpreadData = useMemo(() => {
@@ -85,10 +91,16 @@ export default function PositionsPage() {
         // Net = longBid - shortAsk (should be positive for profit)
         const currentPrice = longPrice.bid;
 
-        // PnL = (currentPrice - entryPrice) / entryPrice * 100
-        const pnl = selectedPosition.entryPrice > 0
-            ? ((currentPrice - selectedPosition.entryPrice) / selectedPosition.entryPrice * 100)
+        // PnL calculation based on both entry prices
+        // Long PnL = (currentLongPrice - entryPriceLong) / entryPriceLong
+        // Short PnL = (entryPriceShort - currentShortPrice) / entryPriceShort
+        const longPnl = selectedPosition.entryPriceLong > 0
+            ? ((longPrice.bid - selectedPosition.entryPriceLong) / selectedPosition.entryPriceLong * 100)
             : 0;
+        const shortPnl = selectedPosition.entryPriceShort > 0
+            ? ((selectedPosition.entryPriceShort - shortPrice.ask) / selectedPosition.entryPriceShort * 100)
+            : 0;
+        const pnl = longPnl + shortPnl;
 
         return {
             longBid: longPrice.bid,
@@ -101,23 +113,28 @@ export default function PositionsPage() {
         };
     }, [selectedPosition, prices]);
 
-    // Update spread history for chart
+    // Update spread history for chart - KEEP ALL HISTORY
     useEffect(() => {
         if (exitSpreadData && selectedPosition) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
             setSpreadHistory(prev => {
-                const newHistory = [...prev, { time: timeStr, exitSpread: exitSpreadData.exitSpread }];
-                // Keep last 60 points (5 minutes at 5s interval)
-                return newHistory.slice(-60);
+                // Keep ALL history, no limit
+                return [...prev, {
+                    time: timeStr,
+                    timestamp: Date.now(),
+                    exitSpread: exitSpreadData.exitSpread,
+                    longBid: exitSpreadData.longBid,
+                    shortAsk: exitSpreadData.shortAsk
+                }];
             });
         }
     }, [exitSpreadData, selectedPosition]);
 
     // Add new position
     const handleAddPosition = () => {
-        if (!token || !longExchange || !shortExchange || !entryPrice) {
+        if (!token || !longExchange || !shortExchange || !entryPriceLong || !entryPriceShort || !tokenAmount) {
             alert('Remplis tous les champs');
             return;
         }
@@ -127,8 +144,10 @@ export default function PositionsPage() {
             token: token.toUpperCase().includes('-USD') ? token.toUpperCase() : `${token.toUpperCase()}-USD`,
             longExchange,
             shortExchange,
-            entryPrice: parseFloat(entryPrice),
-            entrySpread: 0, // Will be calculated from current prices if needed
+            entryPriceLong: parseFloat(entryPriceLong),
+            entryPriceShort: parseFloat(entryPriceShort),
+            tokenAmount: parseFloat(tokenAmount),
+            entrySpread: 0,
             timestamp: Date.now(),
         };
 
@@ -136,7 +155,9 @@ export default function PositionsPage() {
         setToken('');
         setLongExchange('');
         setShortExchange('');
-        setEntryPrice('');
+        setEntryPriceLong('');
+        setEntryPriceShort('');
+        setTokenAmount('');
     };
 
     // Delete position
@@ -200,13 +221,33 @@ export default function PositionsPage() {
                             </select>
                         </div>
                         <div className={styles.formGroup}>
-                            <label>Prix d'entrée ($)</label>
+                            <label>Prix d'entrée LONG ($)</label>
                             <input
                                 type="number"
                                 step="0.01"
                                 placeholder="100.00"
-                                value={entryPrice}
-                                onChange={(e) => setEntryPrice(e.target.value)}
+                                value={entryPriceLong}
+                                onChange={(e) => setEntryPriceLong(e.target.value)}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Prix d'entrée SHORT ($)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                placeholder="100.00"
+                                value={entryPriceShort}
+                                onChange={(e) => setEntryPriceShort(e.target.value)}
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Nombre de tokens</label>
+                            <input
+                                type="number"
+                                step="0.0001"
+                                placeholder="1.5"
+                                value={tokenAmount}
+                                onChange={(e) => setTokenAmount(e.target.value)}
                             />
                         </div>
                         <button className={styles.addBtn} onClick={handleAddPosition}>
@@ -243,7 +284,7 @@ export default function PositionsPage() {
                                         <span>SHORT {pos.shortExchange.toUpperCase()}</span>
                                     </div>
                                     <div className={styles.entrySpread}>
-                                        Prix: ${pos.entryPrice.toFixed(2)}
+                                        Long: ${pos.entryPriceLong.toFixed(2)} | Short: ${pos.entryPriceShort.toFixed(2)}
                                     </div>
                                 </div>
                             ))
@@ -263,26 +304,49 @@ export default function PositionsPage() {
                                 </span>
                             </div>
 
-                            {/* Stats Cards */}
+                            {/* Stats Cards - Row 1 */}
                             <div className={styles.statsGrid}>
                                 <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>PRIX ENTRÉE</span>
-                                    <span className={styles.statValue}>${selectedPosition.entryPrice.toFixed(2)}</span>
+                                    <span className={styles.statLabel}>TOKENS</span>
+                                    <span className={styles.statValue}>{selectedPosition.tokenAmount}</span>
                                 </div>
                                 <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>PRIX ACTUEL</span>
-                                    <span className={styles.statValue}>${exitSpreadData?.currentPrice?.toFixed(2) || '-'}</span>
+                                    <span className={styles.statLabel}>ENTRÉE LONG</span>
+                                    <span className={styles.statValue}>${selectedPosition.entryPriceLong.toFixed(2)}</span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>ENTRÉE SHORT</span>
+                                    <span className={styles.statValue}>${selectedPosition.entryPriceShort.toFixed(2)}</span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>SPREAD ENTRÉE</span>
+                                    <span className={`${styles.statValue} ${(selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) > 0 ? styles.positive : styles.negative}`}>
+                                        ${(selectedPosition.entryPriceShort - selectedPosition.entryPriceLong).toFixed(2)} ({((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) / selectedPosition.entryPriceLong * 100).toFixed(4)}%)
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Stats Cards - Row 2 */}
+                            <div className={styles.statsGrid}>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>SPREAD $ (TOTAL)</span>
+                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
+                                        ${exitSpreadData && selectedPosition.tokenAmount
+                                            ? ((exitSpreadData.longBid - exitSpreadData.shortAsk) * selectedPosition.tokenAmount).toFixed(2)
+                                            : '-'}
+                                    </span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>BID ACTUEL (LONG)</span>
+                                    <span className={styles.statValue}>${exitSpreadData?.longBid.toFixed(2) || '-'}</span>
+                                </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>ASK ACTUEL (SHORT)</span>
+                                    <span className={styles.statValue}>${exitSpreadData?.shortAsk.toFixed(2) || '-'}</span>
                                 </div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>SPREAD SORTIE</span>
                                     <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
-                                        {exitSpreadData?.exitSpread.toFixed(4) || '-'}%
-                                    </span>
-                                </div>
-                                <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>PNL ESTIMÉ</span>
-                                    <span className={`${styles.statValue} ${(exitSpreadData?.pnl || 0) > 0 ? styles.positive : styles.negative}`}>
-                                        {exitSpreadData?.pnl.toFixed(4) || '-'}%
+                                        ${exitSpreadData ? (exitSpreadData.longBid - exitSpreadData.shortAsk).toFixed(2) : '-'} ({exitSpreadData?.exitSpread.toFixed(4) || '-'}%)
                                     </span>
                                 </div>
                             </div>
@@ -305,35 +369,15 @@ export default function PositionsPage() {
                                 </div>
                             </div>
 
-                            {/* Exit Spread Chart */}
-                            <div className={styles.chartContainer}>
-                                <h3>Évolution du Spread de Sortie</h3>
-                                {spreadHistory.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <AreaChart data={spreadHistory}>
-                                            <defs>
-                                                <linearGradient id="exitGradient" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                            <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10 }} />
-                                            <YAxis stroke="#64748b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
-                                            <Tooltip
-                                                contentStyle={{ background: '#1e293b', border: '1px solid #3b82f6' }}
-                                                formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(4)}%`, 'Exit Spread'] : ['-', 'Exit Spread']}
-                                            />
-                                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" label={{ value: '0%', fill: '#ef4444', fontSize: 10 }} />
-                                            <Area type="monotone" dataKey="exitSpread" stroke="#3b82f6" fill="url(#exitGradient)" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                ) : (
-                                    <div className={styles.chartPlaceholder}>
-                                        Collecte des données en cours...
-                                    </div>
-                                )}
-                            </div>
+                            {/* Exit Spread Chart - Historical Data from DB */}
+                            <ExitSpreadChart
+                                symbol={selectedPosition.token}
+                                longExchange={selectedPosition.longExchange}
+                                shortExchange={selectedPosition.shortExchange}
+                                currentExitSpread={exitSpreadData?.exitSpread || 0}
+                                entryPriceLong={selectedPosition.entryPriceLong}
+                                entryPriceShort={selectedPosition.entryPriceShort}
+                            />
                         </>
                     ) : (
                         <div className={styles.emptyState}>

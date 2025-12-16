@@ -1,0 +1,152 @@
+.chartContainer {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.titleSection {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.subtitle {
+    font-size: 12px;
+    color: #8b5cf6;
+    text-transform: uppercase;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rangeBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: rgba(51, 65, 85, 0.5);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 4px;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rangeBtn:hover {
+    background: rgba(71, 85, 105, 0.5);
+    color: #e2e8f0;
+}
+
+.rangeBtnActive {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #8b5cf6;
+}
+
+.statsBar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 16px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.statLabel {
+    font-size: 10px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statValue {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.statCurrent {
+    color: #8b5cf6;
+}
+
+.statNegative {
+    color: #ef4444;
+}
+
+.statPositive {
+    color: #22c55e;
+}
+
+.chartWrapper {
+    position: relative;
+    min-height: 250px;
+}
+
+.chart {
+    width: 100%;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* Custom Tooltip */
+.tooltip {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltipTime {
+    font-size: 10px;
+    color: #64748b;
+    margin: 0 0 4px 0;
+}
+
+.tooltipValue {
+    font-size: 12px;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.tooltipSpread {
+    color: #8b5cf6;
+    font-weight: 600;
+}
+
+.tooltipPrices {
+    font-size: 10px;
+    color: #94a3b8;
+    margin: 4px 0 0 0;
+}
