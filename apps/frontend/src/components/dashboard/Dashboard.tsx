@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import type { PriceUpdate, ArbitrageOpportunity } from '@arbitrage/shared';
 import { Sidebar } from '@/components/Sidebar';
+import { SpreadChart } from '@/components/SpreadChart/SpreadChart';
 import styles from './Dashboard.module.css';
 
 interface ExchangeStatus {
@@ -40,6 +41,9 @@ export function Dashboard({
         return new Set();
     });
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+    // Expanded row for chart
+    const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
     // Sorting state - can sort by 'pair', 'spread', or an exchange id
     const [sortColumn, setSortColumn] = useState<string>('spread');
@@ -249,66 +253,87 @@ export function Dashboard({
                             </thead>
                             <tbody>
                                 {filteredPrices.map(({ symbol, exchanges: exPrices, spread, buyExchange, sellExchange }) => {
+                                    const isExpanded = expandedRow === symbol;
                                     return (
-                                        <tr key={symbol} className={styles.tableRow}>
-                                            <td className={styles.tdPair}>
-                                                <div className={styles.pairContent}>
-                                                    <button
-                                                        className={`${styles.starBtn} ${favorites.has(symbol) ? styles.starBtnActive : ''}`}
-                                                        onClick={() => handleFavoriteToggle(symbol)}
-                                                    >
-                                                        {favorites.has(symbol) ? '★' : '☆'}
-                                                    </button>
-                                                    <span className={styles.pairSymbol}>{symbol.replace('-USD', '')}</span>
-                                                </div>
-                                            </td>
-                                            <td className={`${styles.tdSpread} ${spread > 0.1 ? styles.spreadHigh : ''}`}>
-                                                {spread.toFixed(4)}%
-                                            </td>
-                                            <td className={styles.tdStrategy}>
-                                                <div className={styles.strategyContent}>
-                                                    {buyExchange && sellExchange ? (
-                                                        <>
-                                                            <span className={styles.strategyLabel}>LONG</span>
-                                                            <span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span>
-                                                            <span className={styles.strategyLabel}>SHORT</span>
-                                                            <span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span>
-                                                        </>
-                                                    ) : (
-                                                        <span className={styles.noPrice}>-</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            {activeExchangeIds.map(exId => {
-                                                const price = exPrices.find(p => p.exchange === exId);
-                                                return (
-                                                    <td key={exId} className={styles.tdPrice}>
-                                                        {price ? (() => {
-                                                            // Dynamic decimal formatting based on price magnitude
-                                                            const formatPrice = (p: number) => {
-                                                                if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                                                if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-                                                                if (p >= 0.01) return p.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
-                                                                return p.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
-                                                            };
-                                                            return (
-                                                                <div className={styles.priceCell}>
-                                                                    <span className={styles.bidPrice}>
-                                                                        ${formatPrice(price.bid)}
-                                                                    </span>
-                                                                    <span className={styles.priceSeparator}>/</span>
-                                                                    <span className={styles.askPrice}>
-                                                                        ${formatPrice(price.ask)}
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        })() : (
+                                        <>
+                                            <tr
+                                                key={symbol}
+                                                className={`${styles.tableRow} ${isExpanded ? styles.tableRowExpanded : ''}`}
+                                                onClick={() => setExpandedRow(isExpanded ? null : symbol)}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <td className={styles.tdPair}>
+                                                    <div className={styles.pairContent}>
+                                                        <button
+                                                            className={`${styles.starBtn} ${favorites.has(symbol) ? styles.starBtnActive : ''}`}
+                                                            onClick={() => handleFavoriteToggle(symbol)}
+                                                        >
+                                                            {favorites.has(symbol) ? '★' : '☆'}
+                                                        </button>
+                                                        <span className={styles.pairSymbol}>{symbol.replace('-USD', '')}</span>
+                                                    </div>
+                                                </td>
+                                                <td className={`${styles.tdSpread} ${spread > 0.1 ? styles.spreadHigh : ''}`}>
+                                                    {spread.toFixed(4)}%
+                                                </td>
+                                                <td className={styles.tdStrategy}>
+                                                    <div className={styles.strategyContent}>
+                                                        {buyExchange && sellExchange ? (
+                                                            <>
+                                                                <span className={styles.strategyLabel}>LONG</span>
+                                                                <span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span>
+                                                                <span className={styles.strategyLabel}>SHORT</span>
+                                                                <span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span>
+                                                            </>
+                                                        ) : (
                                                             <span className={styles.noPrice}>-</span>
                                                         )}
+                                                    </div>
+                                                </td>
+                                                {activeExchangeIds.map(exId => {
+                                                    const price = exPrices.find(p => p.exchange === exId);
+                                                    return (
+                                                        <td key={exId} className={styles.tdPrice}>
+                                                            {price ? (() => {
+                                                                // Dynamic decimal formatting based on price magnitude
+                                                                const formatPrice = (p: number) => {
+                                                                    if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                    if (p >= 1) return p.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+                                                                    if (p >= 0.01) return p.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+                                                                    return p.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
+                                                                };
+                                                                return (
+                                                                    <div className={styles.priceCell}>
+                                                                        <span className={styles.bidPrice}>
+                                                                            ${formatPrice(price.bid)}
+                                                                        </span>
+                                                                        <span className={styles.priceSeparator}>/</span>
+                                                                        <span className={styles.askPrice}>
+                                                                            ${formatPrice(price.ask)}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })() : (
+                                                                <span className={styles.noPrice}>-</span>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                            {isExpanded && buyExchange && sellExchange && (
+                                                <tr key={`${symbol}-chart`} className={styles.chartRow}>
+                                                    <td colSpan={3 + activeExchangeIds.length}>
+                                                        <SpreadChart
+                                                            symbol={symbol}
+                                                            buyExchange={buyExchange}
+                                                            sellExchange={sellExchange}
+                                                            currentSpread={spread}
+                                                            onClose={() => setExpandedRow(null)}
+                                                        />
                                                     </td>
-                                                );
-                                            })}
-                                        </tr>
+                                                </tr>
+                                            )}
+                                        </>
                                     );
                                 })}
                             </tbody>
