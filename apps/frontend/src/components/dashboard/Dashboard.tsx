@@ -111,13 +111,42 @@ export function Dashboard({
             }))
             // Only show symbols present on at least 2 exchanges (for arbitrage)
             .filter(item => item.exchanges.length >= 2)
-            // Calculate spread for each item
+            // Calculate cross-exchange arbitrage spread for each item
             .map(item => {
-                const allPrices = item.exchanges.map(p => p.bid).filter(p => p > 0);
-                const minPrice = Math.min(...allPrices);
-                const maxPrice = Math.max(...allPrices);
-                const spread = minPrice > 0 ? ((maxPrice - minPrice) / minPrice * 100) : 0;
-                return { ...item, spread };
+                // Find best buy (lowest ask) and best sell (highest bid)
+                const validPrices = item.exchanges.filter(p => p.bid > 0 && p.ask > 0);
+                if (validPrices.length < 2) {
+                    return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
+                }
+
+                const bestBuyEx = validPrices.reduce((a, b) => (a.ask < b.ask ? a : b));
+                const bestSellEx = validPrices.reduce((a, b) => (a.bid > b.bid ? a : b));
+
+                // If same exchange, find alternative
+                let finalBuyEx = bestBuyEx;
+                let finalSellEx = bestSellEx;
+
+                if (bestBuyEx.exchange === bestSellEx.exchange) {
+                    const otherExchanges = validPrices.filter(p => p.exchange !== bestBuyEx.exchange);
+                    if (otherExchanges.length > 0) {
+                        // Keep best buy, find alternative sell from other exchanges
+                        finalSellEx = otherExchanges.reduce((a, b) => (a.bid > b.bid ? a : b));
+                    } else {
+                        return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
+                    }
+                }
+
+                // True arbitrage spread: (sell bid - buy ask) / buy ask
+                const spread = finalBuyEx.ask > 0
+                    ? ((finalSellEx.bid - finalBuyEx.ask) / finalBuyEx.ask * 100)
+                    : 0;
+
+                return {
+                    ...item,
+                    spread: Math.max(0, spread), // Don't show negative spreads
+                    buyExchange: finalBuyEx.exchange,
+                    sellExchange: finalSellEx.exchange
+                };
             })
             // Sort based on selected column
             .sort((a, b) => {
@@ -219,17 +248,7 @@ export function Dashboard({
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredPrices.map(({ symbol, exchanges: exPrices }) => {
-                                    // Calculate spread
-                                    const allPrices = exPrices.map(p => p.bid).filter(p => p > 0);
-                                    const minPrice = Math.min(...allPrices);
-                                    const maxPrice = Math.max(...allPrices);
-                                    const spread = minPrice > 0 ? ((maxPrice - minPrice) / minPrice * 100) : 0;
-
-                                    // Find best buy/sell
-                                    const bestBuyEx = exPrices.reduce((a, b) => (a.ask < b.ask ? a : b), exPrices[0]);
-                                    const bestSellEx = exPrices.reduce((a, b) => (a.bid > b.bid ? a : b), exPrices[0]);
-
+                                {filteredPrices.map(({ symbol, exchanges: exPrices, spread, buyExchange, sellExchange }) => {
                                     return (
                                         <tr key={symbol} className={styles.tableRow}>
                                             <td className={styles.tdPair}>
@@ -248,39 +267,16 @@ export function Dashboard({
                                             </td>
                                             <td className={styles.tdStrategy}>
                                                 <div className={styles.strategyContent}>
-                                                    {(() => {
-                                                        // Find best buy (lowest ask) and best sell (highest bid)
-                                                        const bestBuyEx = exPrices.reduce((a, b) => (a.ask < b.ask ? a : b), exPrices[0]);
-                                                        const bestSellEx = exPrices.reduce((a, b) => (a.bid > b.bid ? a : b), exPrices[0]);
-
-                                                        // Only show strategy if exchanges are different
-                                                        if (bestBuyEx?.exchange === bestSellEx?.exchange) {
-                                                            // Find next best options from different exchanges
-                                                            const otherExchanges = exPrices.filter(p => p.exchange !== bestBuyEx?.exchange);
-                                                            if (otherExchanges.length > 0) {
-                                                                const altSellEx = otherExchanges.reduce((a, b) => (a.bid > b.bid ? a : b), otherExchanges[0]);
-                                                                return (
-                                                                    <>
-                                                                        <span className={styles.strategyLabel}>LONG</span>
-                                                                        <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
-                                                                        <span className={styles.strategyLabel}>SHORT</span>
-                                                                        <span className={styles.strategyExchange}>{altSellEx?.exchange?.toUpperCase()}</span>
-                                                                    </>
-                                                                );
-                                                            }
-                                                            // No cross-exchange opportunity
-                                                            return <span className={styles.noPrice}>-</span>;
-                                                        }
-
-                                                        return (
-                                                            <>
-                                                                <span className={styles.strategyLabel}>LONG</span>
-                                                                <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
-                                                                <span className={styles.strategyLabel}>SHORT</span>
-                                                                <span className={styles.strategyExchange}>{bestSellEx?.exchange?.toUpperCase()}</span>
-                                                            </>
-                                                        );
-                                                    })()}
+                                                    {buyExchange && sellExchange ? (
+                                                        <>
+                                                            <span className={styles.strategyLabel}>LONG</span>
+                                                            <span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span>
+                                                            <span className={styles.strategyLabel}>SHORT</span>
+                                                            <span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className={styles.noPrice}>-</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             {activeExchangeIds.map(exId => {
