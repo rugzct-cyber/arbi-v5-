@@ -82,30 +82,37 @@ export function PriceTable({
                     return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
                 }
 
-                const bestBuyEx = validPrices.reduce((a, b) => (a.ask < b.ask ? a : b));
-                const bestSellEx = validPrices.reduce((a, b) => (a.bid > b.bid ? a : b));
+                // Find the best spread among ALL pairs of exchanges
+                let bestSpread = -Infinity;
+                let bestBuyEx = '';
+                let bestSellEx = '';
 
-                let finalBuyEx = bestBuyEx;
-                let finalSellEx = bestSellEx;
+                // Test all combinations: buy on exchange A, sell on exchange B
+                for (const buyEx of validPrices) {
+                    for (const sellEx of validPrices) {
+                        if (buyEx.exchange === sellEx.exchange) continue;
 
-                if (bestBuyEx.exchange === bestSellEx.exchange) {
-                    const otherExchanges = validPrices.filter(p => p.exchange !== bestBuyEx.exchange);
-                    if (otherExchanges.length > 0) {
-                        finalSellEx = otherExchanges.reduce((a, b) => (a.bid > b.bid ? a : b));
-                    } else {
-                        return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
+                        // Spread = (sell price - buy price) / buy price
+                        // Buy at ask, sell at bid
+                        const spread = ((sellEx.bid - buyEx.ask) / buyEx.ask) * 100;
+
+                        if (spread > bestSpread) {
+                            bestSpread = spread;
+                            bestBuyEx = buyEx.exchange;
+                            bestSellEx = sellEx.exchange;
+                        }
                     }
                 }
 
-                const spread = finalBuyEx.ask > 0
-                    ? ((finalSellEx.bid - finalBuyEx.ask) / finalBuyEx.ask * 100)
-                    : 0;
+                if (!bestBuyEx || !bestSellEx) {
+                    return { ...item, spread: 0, buyExchange: '', sellExchange: '' };
+                }
 
                 return {
                     ...item,
-                    spread, // Allow negative spreads
-                    buyExchange: finalBuyEx.exchange,
-                    sellExchange: finalSellEx.exchange
+                    spread: Math.round(bestSpread * 10000) / 10000, // 4 decimals
+                    buyExchange: bestBuyEx,
+                    sellExchange: bestSellEx
                 };
             })
             // Filter out rows with no valid spread (buyExchange/sellExchange empty)
