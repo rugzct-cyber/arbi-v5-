@@ -218,12 +218,11 @@ export function PriceTable({
                                             <td key={exId} className={styles.tdPrice}>
                                                 {price ? (
                                                     <div className={styles.priceCell}>
-                                                        <span className={isShortExchange ? styles.bidPriceHighlight : styles.bidPriceGray}>
-                                                            ${formatPrice(price.bid)}
-                                                        </span>
-                                                        <span className={styles.priceSeparator}>/</span>
                                                         <span className={isLongExchange ? styles.askPriceHighlight : styles.askPriceGray}>
                                                             ${formatPrice(price.ask)}
+                                                        </span>
+                                                        <span className={isShortExchange ? styles.bidPriceHighlight : styles.bidPriceGray}>
+                                                            ${formatPrice(price.bid)}
                                                         </span>
                                                     </div>
                                                 ) : (
