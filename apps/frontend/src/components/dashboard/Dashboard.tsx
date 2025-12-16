@@ -248,10 +248,39 @@ export function Dashboard({
                                             </td>
                                             <td className={styles.tdStrategy}>
                                                 <div className={styles.strategyContent}>
-                                                    <span className={styles.strategyLabel}>LONG</span>
-                                                    <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
-                                                    <span className={styles.strategyLabel}>SHORT</span>
-                                                    <span className={styles.strategyExchange}>{bestSellEx?.exchange?.toUpperCase()}</span>
+                                                    {(() => {
+                                                        // Find best buy (lowest ask) and best sell (highest bid)
+                                                        const bestBuyEx = exPrices.reduce((a, b) => (a.ask < b.ask ? a : b), exPrices[0]);
+                                                        const bestSellEx = exPrices.reduce((a, b) => (a.bid > b.bid ? a : b), exPrices[0]);
+
+                                                        // Only show strategy if exchanges are different
+                                                        if (bestBuyEx?.exchange === bestSellEx?.exchange) {
+                                                            // Find next best options from different exchanges
+                                                            const otherExchanges = exPrices.filter(p => p.exchange !== bestBuyEx?.exchange);
+                                                            if (otherExchanges.length > 0) {
+                                                                const altSellEx = otherExchanges.reduce((a, b) => (a.bid > b.bid ? a : b), otherExchanges[0]);
+                                                                return (
+                                                                    <>
+                                                                        <span className={styles.strategyLabel}>LONG</span>
+                                                                        <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
+                                                                        <span className={styles.strategyLabel}>SHORT</span>
+                                                                        <span className={styles.strategyExchange}>{altSellEx?.exchange?.toUpperCase()}</span>
+                                                                    </>
+                                                                );
+                                                            }
+                                                            // No cross-exchange opportunity
+                                                            return <span className={styles.noPrice}>-</span>;
+                                                        }
+
+                                                        return (
+                                                            <>
+                                                                <span className={styles.strategyLabel}>LONG</span>
+                                                                <span className={styles.strategyExchange}>{bestBuyEx?.exchange?.toUpperCase()}</span>
+                                                                <span className={styles.strategyLabel}>SHORT</span>
+                                                                <span className={styles.strategyExchange}>{bestSellEx?.exchange?.toUpperCase()}</span>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </td>
                                             {activeExchangeIds.map(exId => {
