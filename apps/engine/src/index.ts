@@ -9,7 +9,7 @@ import { QuestDBClient } from './database/questdb.js';
 import type { PriceData } from '@arbitrage/shared';
 
 const PORT = process.env.PORT || 3001;
-const DB_SAMPLE_INTERVAL = 15 * 60 * 1000; // 15 minutes in ms
+const DB_SAMPLE_INTERVAL = 5 * 60 * 1000; // 5 minutes in ms
 
 async function main() {
     console.log('🚀 Starting Arbitrage Engine v5...');
@@ -37,7 +37,7 @@ async function main() {
     let lastLogTime = Date.now();
     const logInterval = 5000; // Log every 5 seconds
 
-    // Store latest prices for 15-min sampling
+    // Store latest prices for 5-min sampling
     const latestPrices = new Map<string, PriceData>();
 
     // Initialize exchange connections
@@ -82,7 +82,7 @@ async function main() {
         },
     });
 
-    // Function to insert prices at aligned times (xx:00, xx:15, xx:30, xx:45)
+    // Function to insert prices at aligned times (xx:00, xx:05, xx:10, xx:15, etc.)
     const insertPrices = async () => {
         if (latestPrices.size === 0) return;
 
@@ -98,23 +98,23 @@ async function main() {
         }
     };
 
-    // Schedule next aligned insert (xx:00, xx:15, xx:30, xx:45)
+    // Schedule next aligned insert (xx:00, xx:05, xx:10, xx:15, etc.)
     const scheduleNextInsert = () => {
         const now = new Date();
         const minutes = now.getMinutes();
         const seconds = now.getSeconds();
         const ms = now.getMilliseconds();
 
-        // Calculate next aligned time (0, 15, 30, 45)
-        const nextAligned = Math.ceil((minutes + 1) / 15) * 15;
-        const minutesUntilNext = (nextAligned - minutes - 1 + 60) % 60 || 15;
+        // Calculate next aligned time (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
+        const nextAligned = Math.ceil((minutes + 1) / 5) * 5;
+        const minutesUntilNext = (nextAligned - minutes - 1 + 60) % 60 || 5;
         const msUntilNext = (minutesUntilNext * 60 - seconds) * 1000 - ms;
 
         console.log(`⏰ Next QuestDB insert in ${Math.round(msUntilNext / 1000)}s at :${String((nextAligned % 60)).padStart(2, '0')}`);
 
         setTimeout(async () => {
             await insertPrices();
-            // After inserting, schedule next one in exactly 15 minutes
+            // After inserting, schedule next one in exactly 5 minutes
             setInterval(insertPrices, DB_SAMPLE_INTERVAL);
         }, msUntilNext);
     };
@@ -134,7 +134,7 @@ async function main() {
     httpServer.listen(PORT, () => {
         console.log(`✅ Engine running on port ${PORT}`);
         console.log(`📡 Socket.io ready for connections`);
-        console.log(`💾 QuestDB sampling every 15 minutes`);
+        console.log(`💾 QuestDB sampling every 5 minutes`);
     });
 
     // Graceful shutdown
