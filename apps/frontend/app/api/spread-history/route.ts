@@ -6,11 +6,6 @@ const VALID_EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter'
 const VALID_RANGES = ['24H', '7D', '30D', 'ALL'];
 const SYMBOL_PATTERN = /^[A-Z0-9]+-USD$/;
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 function sanitizeSymbol(symbol: string): string | null {
     const upper = symbol.toUpperCase();
     if (!SYMBOL_PATTERN.test(upper)) return null;
@@ -48,6 +43,17 @@ export async function GET(request: NextRequest) {
     if (!symbol) return NextResponse.json({ error: 'Invalid symbol format' }, { status: 400 });
     if (!buyExchange) return NextResponse.json({ error: 'Invalid buy exchange' }, { status: 400 });
     if (!sellExchange) return NextResponse.json({ error: 'Invalid sell exchange' }, { status: 400 });
+
+    // Initialize Supabase client inside the function to avoid build-time issues
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('[spread-history] Missing Supabase credentials');
+        return NextResponse.json({ data: [] });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Calculate time range
     const now = new Date();
@@ -101,16 +107,16 @@ export async function GET(request: NextRequest) {
 
         // Create a map of sell prices by timestamp
         const sellPriceMap = new Map<string, number>();
-        (sellData || []).forEach((row) => {
-            sellPriceMap.set(row.timestamp, parseFloat(row.bid));
+        (sellData || []).forEach((row: { timestamp: string; bid: string | number }) => {
+            sellPriceMap.set(row.timestamp, parseFloat(String(row.bid)));
         });
 
         // Calculate spread by matching timestamps
         const data: Array<{ time: string; spread: number }> = [];
 
-        (buyData || []).forEach((row) => {
+        (buyData || []).forEach((row: { timestamp: string; ask: string | number }) => {
             const time = row.timestamp;
-            const askPrice = parseFloat(row.ask);
+            const askPrice = parseFloat(String(row.ask));
 
             // Try exact match first
             let bidPrice = sellPriceMap.get(time);
@@ -121,7 +127,7 @@ export async function GET(request: NextRequest) {
                 for (const sellRow of sellData) {
                     const sellTime = new Date(sellRow.timestamp).getTime();
                     if (Math.abs(buyTime - sellTime) < 10000) {
-                        bidPrice = parseFloat(sellRow.bid);
+                        bidPrice = parseFloat(String(sellRow.bid));
                         break;
                     }
                 }

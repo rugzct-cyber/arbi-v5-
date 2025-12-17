@@ -6,11 +6,6 @@ const VALID_EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter'
 const VALID_RANGES = ['24H', '7D', '30D', 'ALL'];
 const SYMBOL_PATTERN = /^[A-Z0-9]+-USD$/;
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 function sanitizeSymbol(symbol: string): string | null {
     const upper = symbol.toUpperCase();
     if (!SYMBOL_PATTERN.test(upper)) return null;
@@ -57,6 +52,17 @@ export async function GET(request: NextRequest) {
     if (!symbol) return NextResponse.json({ error: 'Invalid symbol format' }, { status: 400 });
     if (!longExchange) return NextResponse.json({ error: 'Invalid long exchange' }, { status: 400 });
     if (!shortExchange) return NextResponse.json({ error: 'Invalid short exchange' }, { status: 400 });
+
+    // Initialize Supabase client inside the function to avoid build-time issues
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('[exit-spread-history] Missing Supabase credentials');
+        return NextResponse.json({ data: [] });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Calculate time range
     const now = new Date();
@@ -111,16 +117,16 @@ export async function GET(request: NextRequest) {
 
         // Create a map of short ASK prices by timestamp
         const shortAskMap = new Map<string, number>();
-        (shortData || []).forEach((row) => {
-            shortAskMap.set(row.timestamp, parseFloat(row.ask));
+        (shortData || []).forEach((row: { timestamp: string; ask: string | number }) => {
+            shortAskMap.set(row.timestamp, parseFloat(String(row.ask)));
         });
 
         // Calculate EXIT spread by matching timestamps
         const data: Array<{ time: string; spread: number; longBid: number; shortAsk: number }> = [];
 
-        (longData || []).forEach((row) => {
+        (longData || []).forEach((row: { timestamp: string; bid: string | number }) => {
             const time = row.timestamp;
-            const longBid = parseFloat(row.bid);
+            const longBid = parseFloat(String(row.bid));
 
             // Try exact match first
             let shortAsk = shortAskMap.get(time);
@@ -131,7 +137,7 @@ export async function GET(request: NextRequest) {
                 for (const shortRow of shortData) {
                     const shortTime = new Date(shortRow.timestamp).getTime();
                     if (Math.abs(longTime - shortTime) < 10000) {
-                        shortAsk = parseFloat(shortRow.ask);
+                        shortAsk = parseFloat(String(shortRow.ask));
                         break;
                     }
                 }
