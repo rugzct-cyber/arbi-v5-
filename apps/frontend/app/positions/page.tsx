@@ -27,8 +27,16 @@ interface SpreadPoint {
 
 const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
 
+const REFRESH_OPTIONS = [
+    { label: 'Instant', value: 0 },
+    { label: '5s', value: 5000 },
+    { label: '15s', value: 15000 },
+    { label: '30s', value: 30000 },
+    { label: '1min', value: 60000 },
+];
+
 export default function PositionsPage() {
-    const { prices, isConnected, exchanges } = useSocket();
+    const { prices, isConnected, exchanges, lastRefresh, refreshPrices, refreshInterval, setRefreshInterval } = useSocket();
 
     // Form state
     const [token, setToken] = useState('');
@@ -177,16 +185,44 @@ export default function PositionsPage() {
 
     return (
         <div className={styles.container}>
-            {/* Header */}
+            {/* Header - Same as Dashboard */}
             <header className={styles.header}>
-                <div className={styles.headerLeft}>
-                    <h1>📊 Position Manager</h1>
-                    <div className={styles.status}>
-                        <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
-                        {isConnected ? 'Connecté' : 'Déconnecté'}
+                <div className={styles.headerContent}>
+                    <h1 className={styles.title}>
+                        <span className={styles.logo}>📊</span>
+                        Position Manager
+                    </h1>
+
+                    <nav className={styles.nav}>
+                        <a href="/" className={styles.navLinkInactive}>Dashboard</a>
+                        <a href="/positions" className={styles.navLink}>Positions</a>
+                    </nav>
+
+                    <div className={styles.headerRight}>
+                        <div className={styles.refreshSection}>
+                            <select
+                                className={styles.refreshSelect}
+                                value={refreshInterval}
+                                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                            >
+                                {REFRESH_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                            <span className={styles.lastRefresh} suppressHydrationWarning>
+                                Updated: {lastRefresh.toLocaleTimeString()}
+                            </span>
+                            <button className={styles.refreshBtn} onClick={refreshPrices}>
+                                Refresh
+                            </button>
+                        </div>
+
+                        <div className={styles.status}>
+                            <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
+                            {isConnected ? 'Connected' : 'Disconnected'}
+                        </div>
                     </div>
                 </div>
-                <a href="/" className={styles.backLink}>← Dashboard</a>
             </header>
 
             <div className={styles.content}>
@@ -329,14 +365,7 @@ export default function PositionsPage() {
                             </div>
                             {/* Stats Cards - Row 2 */}
                             <div className={styles.statsGrid}>
-                                <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>SPREAD $ (TOTAL)</span>
-                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
-                                        ${exitSpreadData && selectedPosition.tokenAmount
-                                            ? ((exitSpreadData.longBid - exitSpreadData.shortAsk) * selectedPosition.tokenAmount).toFixed(2)
-                                            : '-'}
-                                    </span>
-                                </div>
+                                <div className={styles.statCardEmpty}></div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>BID ACTUEL (LONG)</span>
                                     <span className={styles.statValue}>${exitSpreadData?.longBid.toFixed(2) || '-'}</span>
@@ -349,6 +378,20 @@ export default function PositionsPage() {
                                     <span className={styles.statLabel}>SPREAD SORTIE</span>
                                     <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
                                         ${exitSpreadData ? (exitSpreadData.longBid - exitSpreadData.shortAsk).toFixed(2) : '-'} ({exitSpreadData?.exitSpread.toFixed(4) || '-'}%)
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Stats Cards - Row 3: Only SPREAD $ (TOTAL) in 4th column */}
+                            <div className={styles.statsGrid}>
+                                <div className={styles.statCardEmpty}></div>
+                                <div className={styles.statCardEmpty}></div>
+                                <div className={styles.statCardEmpty}></div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>SPREAD $ (TOTAL)</span>
+                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
+                                        ${exitSpreadData && selectedPosition.tokenAmount
+                                            ? ((exitSpreadData.longBid - exitSpreadData.shortAsk) * selectedPosition.tokenAmount).toFixed(2)
+                                            : '-'}
                                     </span>
                                 </div>
                             </div>

@@ -91,9 +91,21 @@ export function ExitSpreadChart({
                         minute: '2-digit'
                     }),
                 }));
-                setData(formattedData);
 
-                // Calculate stats
+                // Add current exit spread as the last point for "live" illusion
+                const dataWithCurrent = [
+                    ...formattedData,
+                    {
+                        time: new Date().toISOString(),
+                        spread: currentExitSpread,
+                        formattedTime: 'Now',
+                        isLive: true,
+                    }
+                ];
+
+                setData(dataWithCurrent);
+
+                // Calculate stats (excluding the live point)
                 if (result.data && result.data.length > 0) {
                     const spreads = result.data.map((d: SpreadDataPoint) => d.spread);
                     const avg = spreads.reduce((a: number, b: number) => a + b, 0) / spreads.length;

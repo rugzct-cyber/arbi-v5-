@@ -10,22 +10,54 @@
     background: var(--card);
     border-bottom: 1px solid var(--border);
     padding: 0.75rem 1.5rem;
+}
+
+.headerContent {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 2rem;
 }
 
-.headerLeft {
+.title {
+    font-size: 1.25rem;
+    font-weight: 700;
     display: flex;
     align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.logo {
+    font-size: 1.5rem;
+}
+
+.nav {
+    display: flex;
     gap: 1.5rem;
 }
 
-.header h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
+.navLink {
     color: var(--foreground);
-    margin: 0;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.navLinkInactive {
+    color: var(--muted-foreground);
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.navLinkInactive:hover {
+    color: var(--foreground);
+}
+
+.headerRight {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .status {
@@ -51,15 +83,56 @@
     background: var(--destructive);
 }
 
-.backLink {
-    color: var(--primary);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
+.refreshSection {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.backLink:hover {
-    text-decoration: underline;
+.refreshSelect {
+    padding: 0.4rem 0.75rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshSelect:hover {
+    border-color: var(--ring);
+}
+
+.refreshSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.lastRefresh {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.refreshBtn {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--primary-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+    background: var(--ring);
+    transform: scale(1.02);
+}
+
+.refreshBtn:active {
+    transform: scale(0.98);
 }
 
 .content {
@@ -256,6 +329,32 @@
     letter-spacing: 0.05em;
 }
 
+.statsLayout {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.statsLeft {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.statsGrid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.spreadsColumn {
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
 .statsGrid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -269,6 +368,10 @@
     border-radius: var(--radius);
     padding: 1rem;
     text-align: center;
+}
+
+.statCardEmpty {
+    /* Invisible placeholder to maintain grid alignment */
 }
 
 .statLabel {
