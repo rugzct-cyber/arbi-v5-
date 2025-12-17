@@ -43,8 +43,6 @@ export class NadoWebSocket extends BaseExchangeAdapter {
         };
     }
 
-
-
     protected onOpen(): void {
         console.log(`[${this.exchangeId}] WebSocket connected`);
         this.startPing();
@@ -55,11 +53,12 @@ export class NadoWebSocket extends BaseExchangeAdapter {
         // Subscribe to book_depth for all mapped products
         // book_depth provides top of book + depth
 
-        Object.keys(this.productMap).forEach(idStr => {
+        Object.keys(this.productMap).forEach((idStr, index) => {
             const productId = parseInt(idStr);
             console.log(`[${this.exchangeId}] Subscribing to Product ID ${productId} (${this.productMap[productId]})`);
 
             this.send({
+                id: index + 1, // API requires an ID in the request
                 method: 'subscribe',
                 stream: {
                     type: 'book_depth',
@@ -83,45 +82,24 @@ export class NadoWebSocket extends BaseExchangeAdapter {
             const message = JSON.parse(data.toString());
 
             // Handle Book Depth Updates
-            // Example payload check needed. 
-            // Based on streams doc: StreamSubscription::BookDepth { product_id }
+            // Format found via debug:
+            // {"type":"book_depth","product_id":2,"bids":[],"asks":[["86129000000000000000000","1219100000000000000"]], ...}
 
-            // Check if this is a book_depth message
-            // Nado messages often wrap result in 'data' or come as direct stream messages
-
-            // Assuming message structure based on similar Vertex/Nado usage:
-            // { stream: { type: 'book_depth', product_id: ... }, data: { bids: [], asks: [] } }
-
-            if (message.stream && message.stream.type === 'book_depth' && message.data) {
-                const productId = message.stream.product_id;
+            if (message.type === 'book_depth') {
+                const productId = message.product_id;
                 const symbol = this.productMap[productId];
 
                 if (symbol) {
-                    const bids = message.data.bids;
-                    const asks = message.data.asks;
+                    const bids = message.bids;
+                    const asks = message.asks;
 
                     if (bids && bids.length > 0 && asks && asks.length > 0) {
-                        // Prices in Nado/Vertex are X18 integers usually, but BookDepth stream *might* return floats or x18 strings.
-                        // The 'symbols.json' showed "price_increment_x18". 
-                        // The API docs said "Prices are in x18".
-                        // HOWEVER, websocket streams often return raw x18 strings.
-                        // Let's assume x18 strings and div by 1e18.
-
-                        // Wait, 'book_depth' usually returns standard price/size in some implementations or x18.
-                        // Let's log first message to be safe? 
-                        // Actually, better to implement safe parsing.
-
-                        // Parse bid/ask px. If they are huge (> 1e10), they are likely x18.
-                        // Example ETH price 2000 * 1e18 = 2e21
-
                         const bestBidRaw = BigInt(bids[0][0]);
                         const bestAskRaw = BigInt(asks[0][0]);
 
                         // Convert from X18 to number
                         // 1e18
                         const div = 1000000000000000000n;
-
-                        // Precision handling: Number(bigint) / 1e18 might lose precision but fine for arb engine v5 logic which uses number.
 
                         const bestBid = Number(bestBidRaw) / 1e18;
                         const bestAsk = Number(bestAskRaw) / 1e18;
