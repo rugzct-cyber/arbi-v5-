@@ -30,6 +30,7 @@ export class SupabasePriceClient {
 
         const records = prices.map(price => ({
             timestamp: snapshotTimestamp,  // Unified snapshot timestamp
+            received_at: new Date(price.timestamp).toISOString(), // Original exact timestamp
             exchange: price.exchange,
             symbol: price.symbol,
             bid: price.bid,
