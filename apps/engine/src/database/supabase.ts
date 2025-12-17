@@ -17,15 +17,19 @@ export class SupabasePriceClient {
     }
 
     /**
-     * Insert a batch of prices - each price keeps its own timestamp
+     * Insert a batch of prices with a unified snapshot timestamp
+     * All prices get the same timestamp for perfect synchronization
      */
     async insertBatch(prices: PriceData[]): Promise<void> {
         if (!this.connected || prices.length === 0) return;
 
-        console.log(`📊 Inserting ${prices.length} prices (individual timestamps)`);
+        // Snapshot timestamp - same for all prices in this batch
+        const snapshotTimestamp = new Date().toISOString();
+
+        console.log(`📸 Snapshot: ${prices.length} prices @ ${snapshotTimestamp}`);
 
         const records = prices.map(price => ({
-            timestamp: new Date(price.timestamp).toISOString(),  // Use price's own timestamp
+            timestamp: snapshotTimestamp,  // Unified snapshot timestamp
             exchange: price.exchange,
             symbol: price.symbol,
             bid: price.bid,
