@@ -356,10 +356,6 @@ export default function PositionsPage() {
                             {/* Stats Cards - Row 1 */}
                             <div className={styles.statsGrid}>
                                 <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>TOKENS</span>
-                                    <span className={styles.statValue}>{selectedPosition.tokenAmount}</span>
-                                </div>
-                                <div className={styles.statCard}>
                                     <span className={styles.statLabel}>ENTRÉE LONG</span>
                                     <span className={styles.statValue}>${selectedPosition.entryPriceLong.toFixed(2)}</span>
                                 </div>
@@ -373,10 +369,13 @@ export default function PositionsPage() {
                                         ${(selectedPosition.entryPriceShort - selectedPosition.entryPriceLong).toFixed(2)} ({((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) / selectedPosition.entryPriceLong * 100).toFixed(4)}%)
                                     </span>
                                 </div>
+                                <div className={styles.statCard}>
+                                    <span className={styles.statLabel}>TOKENS</span>
+                                    <span className={styles.statValue}>{selectedPosition.tokenAmount}</span>
+                                </div>
                             </div>
                             {/* Stats Cards - Row 2 */}
                             <div className={styles.statsGrid}>
-                                <div className={styles.statCardEmpty}></div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>BID ACTUEL (LONG)</span>
                                     <span className={styles.statValue}>${exitSpreadData?.longBid.toFixed(2) || '-'}</span>
@@ -391,12 +390,6 @@ export default function PositionsPage() {
                                         ${exitSpreadData ? (exitSpreadData.longBid - exitSpreadData.shortAsk).toFixed(2) : '-'} ({exitSpreadData?.exitSpread.toFixed(4) || '-'}%)
                                     </span>
                                 </div>
-                            </div>
-                            {/* Stats Cards - Row 3: Only SPREAD $ (TOTAL) in 4th column */}
-                            <div className={styles.statsGrid}>
-                                <div className={styles.statCardEmpty}></div>
-                                <div className={styles.statCardEmpty}></div>
-                                <div className={styles.statCardEmpty}></div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>P&L $ (TOTAL)</span>
                                     <span className={`${styles.statValue} ${exitSpreadData?.isInProfit ? styles.positive : styles.negative}`}>
