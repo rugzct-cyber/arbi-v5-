@@ -1,31 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 // Allowed values for validation (whitelist approach)
 const VALID_EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
 const VALID_RANGES = ['24H', '7D', '30D', 'ALL'];
-const SYMBOL_PATTERN = /^[A-Z0-9]+-USD$/; // e.g., BTC-USD, SOL-USD, 1000PEPE-USD
+const SYMBOL_PATTERN = /^[A-Z0-9]+-USD$/;
 
-/**
- * Sanitize and validate input to prevent SQL injection
- */
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 function sanitizeSymbol(symbol: string): string | null {
     const upper = symbol.toUpperCase();
-    if (!SYMBOL_PATTERN.test(upper)) {
-        return null;
-    }
-    // Additional check: max length and no special SQL chars
-    if (upper.length > 20 || /[;'"\\]/.test(upper)) {
-        return null;
-    }
+    if (!SYMBOL_PATTERN.test(upper)) return null;
+    if (upper.length > 20 || /[;'"\\]/.test(upper)) return null;
     return upper;
 }
 
 function sanitizeExchange(exchange: string): string | null {
     const lower = exchange.toLowerCase();
-    if (!VALID_EXCHANGES.includes(lower)) {
-        return null;
-    }
-    return lower;
+    return VALID_EXCHANGES.includes(lower) ? lower : null;
 }
 
 function sanitizeRange(range: string): string {
@@ -45,130 +40,88 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    // Sanitize inputs
     const symbol = sanitizeSymbol(symbolRaw);
     const buyExchange = sanitizeExchange(buyExchangeRaw);
     const sellExchange = sanitizeExchange(sellExchangeRaw);
     const range = sanitizeRange(rangeRaw);
 
-    if (!symbol) {
-        return NextResponse.json({ error: 'Invalid symbol format' }, { status: 400 });
-    }
-    if (!buyExchange) {
-        return NextResponse.json({ error: 'Invalid buy exchange' }, { status: 400 });
-    }
-    if (!sellExchange) {
-        return NextResponse.json({ error: 'Invalid sell exchange' }, { status: 400 });
-    }
+    if (!symbol) return NextResponse.json({ error: 'Invalid symbol format' }, { status: 400 });
+    if (!buyExchange) return NextResponse.json({ error: 'Invalid buy exchange' }, { status: 400 });
+    if (!sellExchange) return NextResponse.json({ error: 'Invalid sell exchange' }, { status: 400 });
 
-    // Calculate time range and sample interval
-    const nowMs = Date.now();
-    let startTimeMs: number;
-    let sampleInterval: string;
+    // Calculate time range
+    const now = new Date();
+    let startTime: Date;
 
     switch (range) {
         case '24H':
-            startTimeMs = nowMs - 24 * 60 * 60 * 1000;
-            sampleInterval = '15m';
+            startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             break;
         case '7D':
-            startTimeMs = nowMs - 7 * 24 * 60 * 60 * 1000;
-            sampleInterval = '1h';
+            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             break;
         case '30D':
-            startTimeMs = nowMs - 30 * 24 * 60 * 60 * 1000;
-            sampleInterval = '4h';
+            startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             break;
         case 'ALL':
         default:
-            startTimeMs = nowMs - 365 * 24 * 60 * 60 * 1000;
-            sampleInterval = '1d';
+            startTime = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
             break;
     }
 
-    // Convert to microseconds for QuestDB
-    const startTimeUs = startTimeMs * 1000;
-
     try {
-        const questdbHost = process.env.QUESTDB_HOST || 'questdbquestdb-production-cc7b.up.railway.app';
-
-        // Build queries with sanitized values
-        // NOTE: Since QuestDB HTTP API doesn't support parameterized queries,
-        // we rely on whitelist validation above to prevent injection
-        const buyQuery = `
-            SELECT 
-                timestamp as time,
-                avg(ask) as ask_price
-            FROM prices
-            WHERE symbol = '${symbol}'
-              AND exchange = '${buyExchange}'
-              AND timestamp > ${startTimeUs}
-            SAMPLE BY ${sampleInterval}
-            ORDER BY timestamp ASC
-            LIMIT 500
-        `;
-
-        const sellQuery = `
-            SELECT 
-                timestamp as time,
-                avg(bid) as bid_price
-            FROM prices
-            WHERE symbol = '${symbol}'
-              AND exchange = '${sellExchange}'
-              AND timestamp > ${startTimeUs}
-            SAMPLE BY ${sampleInterval}
-            ORDER BY timestamp ASC
-            LIMIT 500
-        `;
-
         console.log(`[spread-history] Querying ${symbol}: ${buyExchange} vs ${sellExchange}, range=${range}`);
 
-        const [buyResponse, sellResponse] = await Promise.all([
-            fetch(`https://${questdbHost}/exec?query=${encodeURIComponent(buyQuery)}`),
-            fetch(`https://${questdbHost}/exec?query=${encodeURIComponent(sellQuery)}`)
-        ]);
+        // Query buy exchange prices (ask)
+        const { data: buyData, error: buyError } = await supabase
+            .from('prices')
+            .select('timestamp, ask')
+            .eq('symbol', symbol)
+            .eq('exchange', buyExchange)
+            .gte('timestamp', startTime.toISOString())
+            .order('timestamp', { ascending: true })
+            .limit(500);
 
-        if (!buyResponse.ok || !sellResponse.ok) {
-            console.error('[spread-history] QuestDB query failed');
+        // Query sell exchange prices (bid)
+        const { data: sellData, error: sellError } = await supabase
+            .from('prices')
+            .select('timestamp, bid')
+            .eq('symbol', symbol)
+            .eq('exchange', sellExchange)
+            .gte('timestamp', startTime.toISOString())
+            .order('timestamp', { ascending: true })
+            .limit(500);
+
+        if (buyError || sellError) {
+            console.error('[spread-history] Supabase query failed:', buyError || sellError);
             return NextResponse.json({ data: [] });
         }
 
-        const buyResult = await buyResponse.json();
-        const sellResult = await sellResponse.json();
+        console.log(`[spread-history] Buy data: ${buyData?.length || 0} rows, Sell data: ${sellData?.length || 0} rows`);
 
-        console.log(`[spread-history] Buy data: ${buyResult.count || 0} rows, Sell data: ${sellResult.count || 0} rows`);
-
-        // Create a map of sell prices by exact timestamp from SAMPLE BY
-        // Also keep the original entries array for tolerance-based matching
+        // Create a map of sell prices by timestamp
         const sellPriceMap = new Map<string, number>();
-        const sellEntries: Array<[string, number]> = sellResult.dataset || [];
-
-        sellEntries.forEach((row: [string, number]) => {
-            // Store with exact timestamp for primary matching
-            sellPriceMap.set(row[0], row[1]);
+        (sellData || []).forEach((row) => {
+            sellPriceMap.set(row.timestamp, parseFloat(row.bid));
         });
 
-        // Calculate spread by matching time buckets
+        // Calculate spread by matching timestamps
         const data: Array<{ time: string; spread: number }> = [];
 
-        (buyResult.dataset || []).forEach((row: [string, number]) => {
-            const time = row[0];
-            const askPrice = row[1];
+        (buyData || []).forEach((row) => {
+            const time = row.timestamp;
+            const askPrice = parseFloat(row.ask);
 
-            // First try exact match
+            // Try exact match first
             let bidPrice = sellPriceMap.get(time);
 
-            // If no exact match, find closest timestamp within 4 second tolerance
-            if (!bidPrice && sellEntries.length > 0) {
+            // If no exact match, find closest within 10 seconds
+            if (!bidPrice && sellData && sellData.length > 0) {
                 const buyTime = new Date(time).getTime();
-
-                for (let i = 0; i < sellEntries.length; i++) {
-                    const sellTime = new Date(sellEntries[i][0]).getTime();
-                    const diff = Math.abs(buyTime - sellTime);
-
-                    // Match if within 4 seconds tolerance
-                    if (diff < 4000) {
-                        bidPrice = sellEntries[i][1];
+                for (const sellRow of sellData) {
+                    const sellTime = new Date(sellRow.timestamp).getTime();
+                    if (Math.abs(buyTime - sellTime) < 10000) {
+                        bidPrice = parseFloat(sellRow.bid);
                         break;
                     }
                 }

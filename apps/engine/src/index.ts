@@ -5,7 +5,7 @@ import { ExchangeManager } from './exchanges/index.js';
 import { PriceAggregator } from './services/price-aggregator.js';
 import { ArbitrageDetector } from './services/arbitrage-detector.js';
 import { Broadcaster } from './services/broadcaster.js';
-import { QuestDBClient } from './database/questdb.js';
+import { SupabasePriceClient } from './database/supabase.js';
 import type { PriceData } from '@arbitrage/shared';
 
 const PORT = process.env.PORT || 3001;
@@ -20,11 +20,10 @@ async function main() {
     // Initialize Socket.io
     const io = initSocketServer(httpServer);
 
-    // Initialize QuestDB client
-    const questdb = new QuestDBClient({
-        host: process.env.QUESTDB_HOST || 'questdbquestdb-production-cc7b.up.railway.app',
-        ilpPort: parseInt(process.env.QUESTDB_ILP_PORT || '9009'),
-        httpPort: parseInt(process.env.QUESTDB_HTTP_PORT || '443'),
+    // Initialize Supabase client
+    const supabase = new SupabasePriceClient({
+        url: process.env.SUPABASE_URL || '',
+        serviceKey: process.env.SUPABASE_SERVICE_KEY || '',
     });
 
     // Initialize services
@@ -88,13 +87,13 @@ async function main() {
 
         const prices = Array.from(latestPrices.values());
         const now = new Date();
-        console.log(`💾 [${now.toISOString()}] Sampling ${prices.length} prices to QuestDB...`);
+        console.log(`💾 [${now.toISOString()}] Sampling ${prices.length} prices to Supabase...`);
 
         try {
-            await questdb.insertBatch(prices);
-            console.log(`✅ Saved ${prices.length} prices to QuestDB`);
+            await supabase.insertBatch(prices);
+            console.log(`✅ Saved ${prices.length} prices to Supabase`);
         } catch (error) {
-            console.error('❌ QuestDB batch insert failed:', error);
+            console.error('❌ Supabase batch insert failed:', error);
         }
     };
 
@@ -134,14 +133,14 @@ async function main() {
     httpServer.listen(PORT, () => {
         console.log(`✅ Engine running on port ${PORT}`);
         console.log(`📡 Socket.io ready for connections`);
-        console.log(`💾 QuestDB sampling every 5 minutes`);
+        console.log(`💾 Supabase sampling every 5 minutes`);
     });
 
     // Graceful shutdown
     const shutdown = async () => {
         console.log('\n🛑 Shutting down...');
         await exchangeManager.disconnectAll();
-        await questdb.close();
+        await supabase.close();
         httpServer.close();
         process.exit(0);
     };
