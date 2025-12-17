@@ -86,22 +86,30 @@ export default function PositionsPage() {
 
         if (!longPrice || !shortPrice) return null;
 
+        // Entry spread in $ (what we made at entry)
+        const entrySpreadDollar = selectedPosition.entryPriceShort - selectedPosition.entryPriceLong;
+
         // To close position:
         // - Sell the LONG position → receive BID price
         // - Buy back the SHORT position → pay ASK price
-        // Exit spread = (longBid - shortAsk) / shortAsk * 100
+        // Exit spread $ = longBid - shortAsk
+        const exitSpreadDollar = longPrice.bid - shortPrice.ask;
+
+        // Exit spread % = (longBid - shortAsk) / shortAsk * 100
         const exitSpread = shortPrice.ask > 0
             ? ((longPrice.bid - shortPrice.ask) / shortPrice.ask * 100)
             : 0;
 
+        // Break-even: We're at break-even when exitSpreadDollar = -entrySpreadDollar
+        // We're in profit when: exitSpreadDollar >= -entrySpreadDollar
+        // Which is equivalent to: exitSpreadDollar + entrySpreadDollar >= 0
+        const breakEvenExitSpread = -entrySpreadDollar;
+        const isInProfit = exitSpreadDollar >= breakEvenExitSpread;
+
         // Current closing price (what we get if we exit now)
-        // Long: we receive longBid, Short: we pay shortAsk
-        // Net = longBid - shortAsk (should be positive for profit)
         const currentPrice = longPrice.bid;
 
-        // PnL calculation based on both entry prices
-        // Long PnL = (currentLongPrice - entryPriceLong) / entryPriceLong
-        // Short PnL = (entryPriceShort - currentShortPrice) / entryPriceShort
+        // PnL calculation
         const longPnl = selectedPosition.entryPriceLong > 0
             ? ((longPrice.bid - selectedPosition.entryPriceLong) / selectedPosition.entryPriceLong * 100)
             : 0;
@@ -116,6 +124,9 @@ export default function PositionsPage() {
             shortBid: shortPrice.bid,
             shortAsk: shortPrice.ask,
             exitSpread: Math.round(exitSpread * 10000) / 10000,
+            exitSpreadDollar,
+            breakEvenExitSpread,
+            isInProfit,
             currentPrice,
             pnl: Math.round(pnl * 10000) / 10000,
         };
@@ -376,7 +387,7 @@ export default function PositionsPage() {
                                 </div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>SPREAD SORTIE</span>
-                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
+                                    <span className={`${styles.statValue} ${exitSpreadData?.isInProfit ? styles.positive : styles.negative}`}>
                                         ${exitSpreadData ? (exitSpreadData.longBid - exitSpreadData.shortAsk).toFixed(2) : '-'} ({exitSpreadData?.exitSpread.toFixed(4) || '-'}%)
                                     </span>
                                 </div>
@@ -387,10 +398,10 @@ export default function PositionsPage() {
                                 <div className={styles.statCardEmpty}></div>
                                 <div className={styles.statCardEmpty}></div>
                                 <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>SPREAD $ (TOTAL)</span>
-                                    <span className={`${styles.statValue} ${(exitSpreadData?.exitSpread || 0) > 0 ? styles.positive : styles.negative}`}>
+                                    <span className={styles.statLabel}>P&L $ (TOTAL)</span>
+                                    <span className={`${styles.statValue} ${exitSpreadData?.isInProfit ? styles.positive : styles.negative}`}>
                                         ${exitSpreadData && selectedPosition.tokenAmount
-                                            ? ((exitSpreadData.longBid - exitSpreadData.shortAsk) * selectedPosition.tokenAmount).toFixed(2)
+                                            ? (((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) + (exitSpreadData.longBid - exitSpreadData.shortAsk)) * selectedPosition.tokenAmount).toFixed(2)
                                             : '-'}
                                     </span>
                                 </div>
