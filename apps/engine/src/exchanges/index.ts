@@ -6,6 +6,7 @@ import { HyperliquidWebSocket } from './hyperliquid-ws.js';
 import { LighterWebSocket } from './lighter-ws.js';
 import { PacificaWebSocket } from './pacifica-ws.js';
 import { EtherealWebSocket } from './ethereal-ws.js';
+import { NadoWebSocket } from './nado-ws.js';
 
 // ... inside initializeAdapters ...
 // this.adapters.push(new BackpackWebSocket(this.config));
@@ -45,6 +46,7 @@ export class ExchangeManager {
     this.adapters.set('lighter', new LighterWebSocket(this.createAdapterConfig('lighter')));
     this.adapters.set('pacifica', new PacificaWebSocket(this.createAdapterConfig('pacifica')));
     this.adapters.set('ethereal', new EtherealWebSocket(this.createAdapterConfig('ethereal')) as any);
+    this.adapters.set('nado', new NadoWebSocket(this.createAdapterConfig('nado')));
 
     console.log(`📦 Initialized ${this.adapters.size} exchange adapters`);
   }
@@ -109,4 +111,5 @@ export { HyperliquidWebSocket } from './hyperliquid-ws.js';
 export { LighterWebSocket } from './lighter-ws.js';
 export { PacificaWebSocket } from './pacifica-ws.js';
 export { EtherealWebSocket } from './ethereal-ws.js';
+export { NadoWebSocket } from './nado-ws.js';
 export { BaseExchangeAdapter } from './base-adapter.js';
