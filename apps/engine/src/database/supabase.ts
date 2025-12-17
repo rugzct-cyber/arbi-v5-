@@ -17,17 +17,15 @@ export class SupabasePriceClient {
     }
 
     /**
-     * Insert a batch of prices with a unified timestamp
+     * Insert a batch of prices - each price keeps its own timestamp
      */
     async insertBatch(prices: PriceData[]): Promise<void> {
         if (!this.connected || prices.length === 0) return;
 
-        const unifiedTimestamp = new Date().toISOString();
-
-        console.log(`📊 Inserting ${prices.length} prices with unified timestamp: ${unifiedTimestamp}`);
+        console.log(`📊 Inserting ${prices.length} prices (individual timestamps)`);
 
         const records = prices.map(price => ({
-            timestamp: unifiedTimestamp,
+            timestamp: new Date(price.timestamp).toISOString(),  // Use price's own timestamp
             exchange: price.exchange,
             symbol: price.symbol,
             bid: price.bid,
