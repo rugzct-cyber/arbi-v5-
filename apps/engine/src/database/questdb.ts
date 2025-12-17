@@ -35,7 +35,12 @@ export class QuestDBClient {
         }
     }
 
-    async insertPrice(price: PriceData): Promise<void> {
+    /**
+     * Insert a single price record
+     * @param price - The price data to insert
+     * @param unifiedTimestamp - Optional unified timestamp (ms) to use for all prices in a batch
+     */
+    async insertPrice(price: PriceData, unifiedTimestamp?: number): Promise<void> {
         // Skip if connection already failed
         if (this.connectionFailed) return;
 
@@ -46,13 +51,19 @@ export class QuestDBClient {
         if (!this.sender) return;
 
         try {
-            await this.sender
+            const builder = this.sender
                 .table('prices')
                 .symbol('exchange', price.exchange)
                 .symbol('symbol', price.symbol)
                 .floatColumn('bid', price.bid)
-                .floatColumn('ask', price.ask)
-                .atNow();
+                .floatColumn('ask', price.ask);
+            
+            // Use unified timestamp if provided, otherwise use current time
+            if (unifiedTimestamp !== undefined) {
+                await builder.at(unifiedTimestamp, 'ms');
+            } else {
+                await builder.atNow();
+            }
         } catch (error) {
             if (!this.errorLogged) {
                 console.warn('⚠️ QuestDB insert failed - disabling persistence');
@@ -83,9 +94,19 @@ export class QuestDBClient {
         }
     }
 
+    /**
+     * Insert a batch of prices with a unified timestamp
+     * All prices in the batch will have the exact same timestamp for accurate chart synchronization
+     */
     async insertBatch(prices: PriceData[]): Promise<void> {
+        // Use a single unified timestamp for all prices in the batch
+        // This ensures all exchanges are recorded at exactly the same moment
+        const unifiedTimestamp = Date.now();
+        
+        console.log(`📊 Inserting ${prices.length} prices with unified timestamp: ${new Date(unifiedTimestamp).toISOString()}`);
+        
         for (const price of prices) {
-            await this.insertPrice(price);
+            await this.insertPrice(price, unifiedTimestamp);
         }
         await this.flush();
     }

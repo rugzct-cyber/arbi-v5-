@@ -63,13 +63,15 @@ export class LighterWebSocket extends BaseExchangeAdapter {
         this.subscribeToOrderBooks();
     }
 
-    private subscribeToOrderBooks(): void {
-        // Subscribe to order books for selected markets
+    private async subscribeToOrderBooks(): Promise<void> {
+        // Subscribe to order books for selected markets with delay to avoid rate limiting
         for (const marketIndex of this.subscribedMarkets) {
             this.send({
                 type: 'subscribe',
                 channel: `order_book/${marketIndex}`,
             });
+            // 50ms delay between subscriptions (20 msg/sec)
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         console.log(`[${this.exchangeId}] Subscribed to order books for ${this.subscribedMarkets.length} markets`);

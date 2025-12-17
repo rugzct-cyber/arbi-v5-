@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { PriceUpdate, ArbitrageOpportunity } from '@arbitrage/shared';
 import { Sidebar } from '@/components/Sidebar';
 import { PriceTable } from './PriceTable';
@@ -45,14 +45,17 @@ export function Dashboard({
         return new Set(exchanges.map(e => e.id));
     });
     const [searchQuery, setSearchQuery] = useState('');
-    const [favorites, setFavorites] = useState<Set<string>>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('favorites');
-            return saved ? new Set(JSON.parse(saved)) : new Set();
-        }
-        return new Set();
-    });
+    // Initialize favorites as empty Set to avoid hydration mismatch
+    const [favorites, setFavorites] = useState<Set<string>>(new Set());
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+    // Load favorites from localStorage after mount (client-side only)
+    useEffect(() => {
+        const saved = localStorage.getItem('favorites');
+        if (saved) {
+            setFavorites(new Set(JSON.parse(saved)));
+        }
+    }, []);
 
     // Update selectedExchanges when exchanges list changes
     useMemo(() => {

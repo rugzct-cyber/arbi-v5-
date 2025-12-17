@@ -31,7 +31,8 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
 
     private pingInterval: NodeJS.Timeout | null = null;
 
-    // Unified list of common tokens across all exchanges
+    // Full list of tokens - rate limit is 1000 subscriptions & 2000 messages/min
+    // With 200ms delay, we send 5 msg/sec which is well under the 33 msg/sec limit
     private readonly symbols = [
         // Tier 1 - Major tokens
         'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK', 'LTC',
@@ -53,12 +54,14 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
 
     protected onOpen(): void {
         console.log(`[${this.exchangeId}] WebSocket connected`);
-        this.subscribeToL2Books();
+        // Start ping FIRST to keep connection alive during subscriptions
         this.startPing();
+        this.subscribeToL2Books();
     }
 
     private async subscribeToL2Books(): Promise<void> {
-        // Subscribe to L2 OrderBook for each coin with delay to prevent rate limiting
+        // Subscribe to L2 OrderBook for each coin
+        // Using 200ms delay = 5 messages/sec, well under the 2000/min (33/sec) rate limit
         for (const coin of this.symbols) {
             this.send({
                 method: 'subscribe',
@@ -67,18 +70,18 @@ export class HyperliquidWebSocket extends BaseExchangeAdapter {
                     coin,
                 },
             });
-            // Small delay between subscriptions (50ms)
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // 200ms delay between subscriptions to respect rate limits
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         console.log(`[${this.exchangeId}] Subscribed to L2 OrderBook for ${this.symbols.length} coins`);
     }
 
     private startPing(): void {
-        // Send ping every 30 seconds to keep connection alive
+        // Send ping every 10 seconds to keep connection alive
         this.pingInterval = setInterval(() => {
             this.send({ method: 'ping' });
-        }, 30000);
+        }, 10000);
     }
 
     protected onMessage(data: WebSocket.RawData): void {

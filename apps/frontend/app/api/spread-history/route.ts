@@ -138,11 +138,14 @@ export async function GET(request: NextRequest) {
 
         console.log(`[spread-history] Buy data: ${buyResult.count || 0} rows, Sell data: ${sellResult.count || 0} rows`);
 
-        // Create a map of sell prices by truncated time (to match buckets)
+        // Create a map of sell prices by exact timestamp from SAMPLE BY
+        // Also keep the original entries array for tolerance-based matching
         const sellPriceMap = new Map<string, number>();
-        (sellResult.dataset || []).forEach((row: [string, number]) => {
-            const timeKey = row[0].substring(0, 13) + ':00:00';
-            sellPriceMap.set(timeKey, row[1]);
+        const sellEntries: Array<[string, number]> = sellResult.dataset || [];
+
+        sellEntries.forEach((row: [string, number]) => {
+            // Store with exact timestamp for primary matching
+            sellPriceMap.set(row[0], row[1]);
         });
 
         // Calculate spread by matching time buckets
@@ -150,9 +153,26 @@ export async function GET(request: NextRequest) {
 
         (buyResult.dataset || []).forEach((row: [string, number]) => {
             const time = row[0];
-            const timeKey = time.substring(0, 13) + ':00:00';
             const askPrice = row[1];
-            const bidPrice = sellPriceMap.get(timeKey);
+
+            // First try exact match
+            let bidPrice = sellPriceMap.get(time);
+
+            // If no exact match, find closest timestamp within 4 second tolerance
+            if (!bidPrice && sellEntries.length > 0) {
+                const buyTime = new Date(time).getTime();
+
+                for (let i = 0; i < sellEntries.length; i++) {
+                    const sellTime = new Date(sellEntries[i][0]).getTime();
+                    const diff = Math.abs(buyTime - sellTime);
+
+                    // Match if within 4 seconds tolerance
+                    if (diff < 4000) {
+                        bidPrice = sellEntries[i][1];
+                        break;
+                    }
+                }
+            }
 
             if (bidPrice && askPrice > 0) {
                 const spread = ((bidPrice - askPrice) / askPrice) * 100;

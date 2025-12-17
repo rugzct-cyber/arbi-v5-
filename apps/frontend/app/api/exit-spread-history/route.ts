@@ -149,11 +149,14 @@ export async function GET(request: NextRequest) {
 
         console.log(`[exit-spread-history] Long BID data: ${longResult.count || 0} rows, Short ASK data: ${shortResult.count || 0} rows`);
 
-        // Create a map of short ASK prices by truncated time (to match buckets)
+        // Create a map of short ASK prices by exact timestamp from SAMPLE BY
+        // Also keep the original entries array for tolerance-based matching
         const shortAskMap = new Map<string, number>();
-        (shortResult.dataset || []).forEach((row: [string, number]) => {
-            const timeKey = row[0].substring(0, 13) + ':00:00';
-            shortAskMap.set(timeKey, row[1]);
+        const shortEntries: Array<[string, number]> = shortResult.dataset || [];
+
+        shortEntries.forEach((row: [string, number]) => {
+            // Store with exact timestamp for primary matching
+            shortAskMap.set(row[0], row[1]);
         });
 
         // Calculate EXIT spread by matching time buckets
@@ -162,9 +165,26 @@ export async function GET(request: NextRequest) {
 
         (longResult.dataset || []).forEach((row: [string, number]) => {
             const time = row[0];
-            const timeKey = time.substring(0, 13) + ':00:00';
             const longBid = row[1];
-            const shortAsk = shortAskMap.get(timeKey);
+
+            // First try exact match
+            let shortAsk = shortAskMap.get(time);
+
+            // If no exact match, find closest timestamp within 4 second tolerance
+            if (!shortAsk && shortEntries.length > 0) {
+                const longTime = new Date(time).getTime();
+
+                for (let i = 0; i < shortEntries.length; i++) {
+                    const shortTime = new Date(shortEntries[i][0]).getTime();
+                    const diff = Math.abs(longTime - shortTime);
+
+                    // Match if within 4 seconds tolerance
+                    if (diff < 4000) {
+                        shortAsk = shortEntries[i][1];
+                        break;
+                    }
+                }
+            }
 
             if (shortAsk && shortAsk > 0) {
                 const spread = ((longBid - shortAsk) / shortAsk) * 100;

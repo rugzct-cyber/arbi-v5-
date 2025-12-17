@@ -79,11 +79,29 @@ export function useSocket() {
 
         // Handle price updates - update live prices ref (no re-render)
         socket.on('price:update', (updates) => {
+            const exchangesWithPrices = new Set<string>();
+
             for (const update of updates) {
                 if (!livePricesRef.current.has(update.symbol)) {
                     livePricesRef.current.set(update.symbol, new Map());
                 }
                 livePricesRef.current.get(update.symbol)!.set(update.exchange, update);
+                exchangesWithPrices.add(update.exchange);
+            }
+
+            // Mark exchanges as connected if we receive prices from them
+            if (exchangesWithPrices.size > 0) {
+                setExchanges((prev) => {
+                    let changed = false;
+                    const updated = prev.map(e => {
+                        if (exchangesWithPrices.has(e.id) && !e.connected) {
+                            changed = true;
+                            return { ...e, connected: true };
+                        }
+                        return e;
+                    });
+                    return changed ? updated : prev;
+                });
             }
         });
 

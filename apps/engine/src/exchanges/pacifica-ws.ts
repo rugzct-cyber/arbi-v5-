@@ -49,7 +49,8 @@ export class PacificaWebSocket extends BaseExchangeAdapter {
         this.startPing();
     }
 
-    private subscribeToBBO(): void {
+    private async subscribeToBBO(): Promise<void> {
+        // Subscribe to BBO for each symbol with delay to avoid rate limiting
         for (const symbol of this.symbols) {
             this.send({
                 method: 'subscribe',
@@ -58,6 +59,8 @@ export class PacificaWebSocket extends BaseExchangeAdapter {
                     symbol,
                 },
             });
+            // 50ms delay between subscriptions (20 msg/sec)
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         console.log(`[${this.exchangeId}] Subscribed to BBO for ${this.symbols.length} symbols`);

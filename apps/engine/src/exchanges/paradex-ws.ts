@@ -57,8 +57,8 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
         this.subscribeToBBO();
     }
 
-    private subscribeToBBO(): void {
-        // Subscribe to BBO for each market
+    private async subscribeToBBO(): Promise<void> {
+        // Subscribe to BBO for each market with delay to avoid rate limiting
         for (const market of this.markets) {
             this.send({
                 jsonrpc: '2.0',
@@ -68,6 +68,8 @@ export class ParadexWebSocket extends BaseExchangeAdapter {
                 },
                 id: this.messageId++,
             });
+            // 50ms delay between subscriptions (20 msg/sec)
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
 
         console.log(`[${this.exchangeId}] Subscribed to BBO for ${this.markets.length} markets`);
