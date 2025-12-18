@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { BaseExchangeAdapter } from './base-adapter.js';
+import { normalizeSymbol } from '@arbitrage/shared';
 
 interface NadoResponse {
     status: string;
@@ -21,6 +22,7 @@ export class NadoWebSocket extends BaseExchangeAdapter {
     readonly wsUrl = 'wss://gateway.prod.nado.xyz/v1/subscribe';
 
     private pingInterval: NodeJS.Timeout | null = null;
+    private priceCache: Record<string, { bid: number; ask: number }> = {};
 
     // Product ID to Symbol Mapping (Perps Only)
     private readonly productMap: Record<number, string> = {
@@ -87,31 +89,50 @@ export class NadoWebSocket extends BaseExchangeAdapter {
 
             if (message.type === 'book_depth') {
                 const productId = message.product_id;
-                const symbol = this.productMap[productId];
+                const rawSymbol = this.productMap[productId];
+                const symbol = rawSymbol ? normalizeSymbol(rawSymbol) : undefined;
 
                 if (symbol) {
+                    if (!this.priceCache[symbol]) {
+                        this.priceCache[symbol] = { bid: 0, ask: 0 };
+                    }
+
                     const bids = message.bids;
                     const asks = message.asks;
 
-                    if (bids && bids.length > 0 && asks && asks.length > 0) {
-                        const bestBidRaw = BigInt(bids[0][0]);
-                        const bestAskRaw = BigInt(asks[0][0]);
-
-                        // Convert from X18 to number
-                        // 1e18
-                        const div = 1000000000000000000n;
-
-                        const bestBid = Number(bestBidRaw) / 1e18;
-                        const bestAsk = Number(bestAskRaw) / 1e18;
-
-                        if (bestBid > 0 && bestAsk > 0) {
-                            this.emitPrice({
-                                exchange: this.exchangeId,
-                                symbol,
-                                bid: bestBid,
-                                ask: bestAsk
-                            });
+                    // Update Bid Cache
+                    if (bids && bids.length > 0) {
+                        // Find best bid with size > 0
+                        // Assuming Nado sends updates where the first entry is relevant for top of book
+                        // or simply taking the most recent "best" we see.
+                        // Ideally we'd maintain a full book, but for now caching the latest non-zero update is a good L1 approximation.
+                        const validBid = bids.find((b: string[]) => BigInt(b[1]) > 0n);
+                        if (validBid) {
+                            const priceRaw = BigInt(validBid[0]);
+                            this.priceCache[symbol].bid = Number(priceRaw) / 1e18;
                         }
+                    }
+
+                    // Update Ask Cache
+                    if (asks && asks.length > 0) {
+                        const validAsk = asks.find((a: string[]) => BigInt(a[1]) > 0n);
+                        if (validAsk) {
+                            const priceRaw = BigInt(validAsk[0]);
+                            this.priceCache[symbol].ask = Number(priceRaw) / 1e18;
+                        }
+                    }
+
+                    const { bid, ask } = this.priceCache[symbol];
+
+
+
+                    if (bid > 0 && ask > 0) {
+                        this.emitPrice({
+                            exchange: this.exchangeId,
+                            symbol,
+                            bid,
+                            ask
+                        });
                     }
                 }
             }
