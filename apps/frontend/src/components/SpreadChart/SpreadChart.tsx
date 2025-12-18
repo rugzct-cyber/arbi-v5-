@@ -161,7 +161,7 @@ export function SpreadChart({ symbol, buyExchange, sellExchange, currentSpread, 
                 ) : data.length === 0 ? (
                     <div className={styles.loading}>No historical data available</div>
                 ) : (
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={350}>
                         <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="spreadGradient" x1="0" y1="0" x2="0" y2="1">
