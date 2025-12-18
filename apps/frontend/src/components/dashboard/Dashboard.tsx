@@ -13,6 +13,7 @@ interface ExchangeStatus {
 
 interface DashboardProps {
     isConnected: boolean;
+    isLoading: boolean;
     prices: Map<string, Map<string, PriceUpdate>>;
     opportunities: ArbitrageOpportunity[];
     exchanges: ExchangeStatus[];
@@ -32,6 +33,7 @@ const REFRESH_OPTIONS = [
 
 export function Dashboard({
     isConnected,
+    isLoading,
     prices,
     opportunities,
     exchanges,
@@ -160,6 +162,7 @@ export function Dashboard({
                         favorites={favorites}
                         activeExchangeIds={activeExchangeIds}
                         onFavoriteToggle={handleFavoriteToggle}
+                        isLoading={isLoading}
                     />
                 </section>
             </div>

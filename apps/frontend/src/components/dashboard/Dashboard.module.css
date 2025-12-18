@@ -430,3 +430,133 @@
     border-radius: var(--radius);
     font-size: 0.75rem;
 }
+
+/* Skeleton Loader */
+@keyframes skeletonPulse {
+
+    0%,
+    100% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 0.15;
+    }
+}
+
+.skeletonRow {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.skeletonRow:nth-child(even) {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.skeletonCell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.skeletonPair {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.skeletonStar {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 100%);
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonText {
+    height: 16px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 100%);
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonTextSm {
+    height: 12px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 100%);
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.skeletonStrategy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.skeletonPrice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Stagger animation delays for a wave effect */
+.skeletonRow:nth-child(1) .skeletonText,
+.skeletonRow:nth-child(1) .skeletonTextSm,
+.skeletonRow:nth-child(1) .skeletonStar {
+    animation-delay: 0s;
+}
+
+.skeletonRow:nth-child(2) .skeletonText,
+.skeletonRow:nth-child(2) .skeletonTextSm,
+.skeletonRow:nth-child(2) .skeletonStar {
+    animation-delay: 0.1s;
+}
+
+.skeletonRow:nth-child(3) .skeletonText,
+.skeletonRow:nth-child(3) .skeletonTextSm,
+.skeletonRow:nth-child(3) .skeletonStar {
+    animation-delay: 0.2s;
+}
+
+.skeletonRow:nth-child(4) .skeletonText,
+.skeletonRow:nth-child(4) .skeletonTextSm,
+.skeletonRow:nth-child(4) .skeletonStar {
+    animation-delay: 0.3s;
+}
+
+.skeletonRow:nth-child(5) .skeletonText,
+.skeletonRow:nth-child(5) .skeletonTextSm,
+.skeletonRow:nth-child(5) .skeletonStar {
+    animation-delay: 0.4s;
+}
+
+.skeletonRow:nth-child(6) .skeletonText,
+.skeletonRow:nth-child(6) .skeletonTextSm,
+.skeletonRow:nth-child(6) .skeletonStar {
+    animation-delay: 0.5s;
+}
+
+.skeletonRow:nth-child(7) .skeletonText,
+.skeletonRow:nth-child(7) .skeletonTextSm,
+.skeletonRow:nth-child(7) .skeletonStar {
+    animation-delay: 0.6s;
+}
+
+.skeletonRow:nth-child(8) .skeletonText,
+.skeletonRow:nth-child(8) .skeletonTextSm,
+.skeletonRow:nth-child(8) .skeletonStar {
+    animation-delay: 0.7s;
+}
+
+.skeletonRow:nth-child(9) .skeletonText,
+.skeletonRow:nth-child(9) .skeletonTextSm,
+.skeletonRow:nth-child(9) .skeletonStar {
+    animation-delay: 0.8s;
+}
+
+.skeletonRow:nth-child(10) .skeletonText,
+.skeletonRow:nth-child(10) .skeletonTextSm,
+.skeletonRow:nth-child(10) .skeletonStar {
+    animation-delay: 0.9s;
+}

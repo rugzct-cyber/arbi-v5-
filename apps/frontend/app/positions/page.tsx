@@ -25,7 +25,7 @@ interface SpreadPoint {
     shortAsk: number;
 }
 
-const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
+const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado'];
 
 const REFRESH_OPTIONS = [
     { label: 'Instant', value: 0 },

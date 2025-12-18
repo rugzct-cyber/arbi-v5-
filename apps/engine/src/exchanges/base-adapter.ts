@@ -1,11 +1,13 @@
 import WebSocket from 'ws';
 import type { PriceData } from '@arbitrage/shared';
+import { EngineConfig } from '../config.js';
 
 export interface ExchangeAdapterConfig {
     onPrice: (price: PriceData) => void;
     onError: (error: Error) => void;
     onConnected: () => void;
     onDisconnected: () => void;
+    watchdogInterval?: number;
 }
 
 export abstract class BaseExchangeAdapter {
@@ -15,14 +17,15 @@ export abstract class BaseExchangeAdapter {
     protected maxReconnectAttempts = 10;
     protected reconnectDelay = 1000;
     protected isConnecting = false;
+    protected readonly watchdogInterval: number;
     protected watchdogTimer: NodeJS.Timeout | null = null;
-    protected readonly watchdogInterval = 15000; // 15 seconds
 
     abstract readonly exchangeId: string;
     abstract readonly wsUrl: string;
 
     constructor(config: ExchangeAdapterConfig) {
         this.config = config;
+        this.watchdogInterval = config.watchdogInterval || EngineConfig.DEFAULT_WATCHDOG_INTERVAL;
     }
 
     /**
@@ -135,10 +138,12 @@ export abstract class BaseExchangeAdapter {
         }, this.watchdogInterval);
     }
 
-    protected send(data: unknown): void {
+    protected send(data: unknown): boolean {
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(data));
+            return true;
         }
+        return false;
     }
 
     protected emitPrice(price: Omit<PriceData, 'timestamp'>): void {

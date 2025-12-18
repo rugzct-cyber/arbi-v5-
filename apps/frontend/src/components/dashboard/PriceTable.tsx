@@ -22,6 +22,7 @@ interface PriceTableProps {
     favorites: Set<string>;
     activeExchangeIds: string[];
     onFavoriteToggle: (symbol: string) => void;
+    isLoading?: boolean;
 }
 
 // Helper function for price formatting (removes trailing zeros)
@@ -40,6 +41,7 @@ export function PriceTable({
     favorites,
     activeExchangeIds,
     onFavoriteToggle,
+    isLoading = false,
 }: PriceTableProps) {
     // Sorting state
     const [sortColumn, setSortColumn] = useState<string>('spread');
@@ -227,83 +229,116 @@ export function PriceTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredPrices.map(({ symbol, exchanges: exPrices, spread, buyExchange, sellExchange }) => {
-                        const isExpanded = expandedRow === symbol;
-                        return (
-                            <>
-                                <tr
-                                    key={symbol}
-                                    className={`${styles.tableRow} ${isExpanded ? styles.tableRowExpanded : ''}`}
-                                    onClick={() => setExpandedRow(isExpanded ? null : symbol)}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    <td className={styles.tdPair}>
-                                        <div className={styles.pairContent}>
-                                            <button
-                                                className={`${styles.starBtn} ${favorites.has(symbol) ? styles.starBtnActive : ''}`}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onFavoriteToggle(symbol);
-                                                }}
-                                            >
-                                                {favorites.has(symbol) ? '★' : '☆'}
-                                            </button>
-                                            <span className={styles.pairSymbol}>{symbol.replace('-USD', '')}</span>
+                    {isLoading ? (
+                        // Skeleton rows
+                        Array.from({ length: 10 }).map((_, i) => (
+                            <tr key={`skeleton-${i}`} className={styles.skeletonRow}>
+                                <td className={styles.tdPair}>
+                                    <div className={styles.skeletonPair}>
+                                        <div className={styles.skeletonStar} />
+                                        <div className={styles.skeletonText} style={{ width: '50px' }} />
+                                    </div>
+                                </td>
+                                <td className={styles.tdSpread}>
+                                    <div className={styles.skeletonCell}>
+                                        <div className={styles.skeletonText} style={{ width: '60px' }} />
+                                    </div>
+                                </td>
+                                <td className={styles.tdStrategy}>
+                                    <div className={styles.skeletonStrategy}>
+                                        <div className={styles.skeletonTextSm} style={{ width: '55px' }} />
+                                        <div className={styles.skeletonTextSm} style={{ width: '55px' }} />
+                                    </div>
+                                </td>
+                                {activeExchangeIds.map(exId => (
+                                    <td key={exId} className={styles.tdPrice}>
+                                        <div className={styles.skeletonPrice}>
+                                            <div className={styles.skeletonTextSm} style={{ width: '70px' }} />
+                                            <div className={styles.skeletonTextSm} style={{ width: '70px' }} />
                                         </div>
                                     </td>
-                                    <td className={`${styles.tdSpread} ${spread > 0.1 ? styles.spreadHigh : ''}`}>
-                                        {spread.toFixed(4)}%
-                                    </td>
-                                    <td className={styles.tdStrategy}>
-                                        <div className={styles.strategyContent}>
-                                            {buyExchange && sellExchange ? (
-                                                <>
-                                                    <div><span className={styles.strategyLabel}>LONG </span><span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span></div>
-                                                    <div><span className={styles.strategyLabel}>SHORT </span><span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span></div>
-                                                </>
-                                            ) : (
-                                                <span className={styles.noPrice}>-</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    {activeExchangeIds.map(exId => {
-                                        const price = exPrices.find(p => p.exchange === exId);
-                                        const isLongExchange = exId === buyExchange;
-                                        const isShortExchange = exId === sellExchange;
-                                        return (
-                                            <td key={exId} className={styles.tdPrice}>
-                                                {price ? (
-                                                    <div className={styles.priceCell}>
-                                                        <span className={isLongExchange ? styles.askPriceHighlight : styles.askPriceGray}>
-                                                            ${formatPrice(price.ask)}
-                                                        </span>
-                                                        <span className={isShortExchange ? styles.bidPriceHighlight : styles.bidPriceGray}>
-                                                            ${formatPrice(price.bid)}
-                                                        </span>
-                                                    </div>
+                                ))}
+                            </tr>
+                        ))
+                    ) : (
+                        filteredPrices.map(({ symbol, exchanges: exPrices, spread, buyExchange, sellExchange }) => {
+                            const isExpanded = expandedRow === symbol;
+                            return (
+                                <>
+                                    <tr
+                                        key={symbol}
+                                        className={`${styles.tableRow} ${isExpanded ? styles.tableRowExpanded : ''}`}
+                                        onClick={() => setExpandedRow(isExpanded ? null : symbol)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <td className={styles.tdPair}>
+                                            <div className={styles.pairContent}>
+                                                <button
+                                                    className={`${styles.starBtn} ${favorites.has(symbol) ? styles.starBtnActive : ''}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onFavoriteToggle(symbol);
+                                                    }}
+                                                >
+                                                    {favorites.has(symbol) ? '★' : '☆'}
+                                                </button>
+                                                <span className={styles.pairSymbol}>{symbol.replace('-USD', '')}</span>
+                                            </div>
+                                        </td>
+                                        <td className={`${styles.tdSpread} ${spread > 0.1 ? styles.spreadHigh : ''}`}>
+                                            {spread.toFixed(4)}%
+                                        </td>
+                                        <td className={styles.tdStrategy}>
+                                            <div className={styles.strategyContent}>
+                                                {buyExchange && sellExchange ? (
+                                                    <>
+                                                        <div><span className={styles.strategyLabel}>LONG </span><span className={styles.strategyExchange}>{buyExchange.toUpperCase()}</span></div>
+                                                        <div><span className={styles.strategyLabel}>SHORT </span><span className={styles.strategyExchange}>{sellExchange.toUpperCase()}</span></div>
+                                                    </>
                                                 ) : (
                                                     <span className={styles.noPrice}>-</span>
                                                 )}
-                                            </td>
-                                        );
-                                    })}
-                                </tr>
-                                {isExpanded && buyExchange && sellExchange && (
-                                    <tr key={`${symbol}-chart`} className={styles.chartRow}>
-                                        <td colSpan={3 + activeExchangeIds.length}>
-                                            <SpreadChart
-                                                symbol={symbol}
-                                                buyExchange={buyExchange}
-                                                sellExchange={sellExchange}
-                                                currentSpread={spread}
-                                                onClose={() => setExpandedRow(null)}
-                                            />
+                                            </div>
                                         </td>
+                                        {activeExchangeIds.map(exId => {
+                                            const price = exPrices.find(p => p.exchange === exId);
+                                            const isLongExchange = exId === buyExchange;
+                                            const isShortExchange = exId === sellExchange;
+                                            return (
+                                                <td key={exId} className={styles.tdPrice}>
+                                                    {price ? (
+                                                        <div className={styles.priceCell}>
+                                                            <span className={isLongExchange ? styles.askPriceHighlight : styles.askPriceGray}>
+                                                                ${formatPrice(price.ask)}
+                                                            </span>
+                                                            <span className={isShortExchange ? styles.bidPriceHighlight : styles.bidPriceGray}>
+                                                                ${formatPrice(price.bid)}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className={styles.noPrice}>-</span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
                                     </tr>
-                                )}
-                            </>
-                        );
-                    })}
+                                    {isExpanded && buyExchange && sellExchange && (
+                                        <tr key={`${symbol}-chart`} className={styles.chartRow}>
+                                            <td colSpan={3 + activeExchangeIds.length}>
+                                                <SpreadChart
+                                                    symbol={symbol}
+                                                    buyExchange={buyExchange}
+                                                    sellExchange={sellExchange}
+                                                    currentSpread={spread}
+                                                    onClose={() => setExpandedRow(null)}
+                                                />
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
+                            );
+                        })
+                    )}
                 </tbody>
             </table>
         </div>
