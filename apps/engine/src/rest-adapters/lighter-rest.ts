@@ -68,44 +68,62 @@ export class LighterRESTAdapter extends BaseRESTAdapter {
         super({ symbols: config?.symbols || [] });
     }
 
+    // Batch size for parallel requests (avoid rate limiting)
+    private readonly BATCH_SIZE = 20;
+    private readonly BATCH_DELAY_MS = 100;
+
     async fetchPrices(): Promise<PriceData[]> {
         const prices: PriceData[] = [];
 
-        const fetchPromises = this.markets.map(async ({ id, symbol }, i) => {
-            await new Promise(resolve => setTimeout(resolve, i * 30));
-
-            try {
-                const response = await fetch(`${this.apiUrl}?market_id=${id}&limit=5`);
-
-                if (!response.ok) {
-                    if (response.status !== 404) {
-                        console.error(`[${this.exchangeId}] REST error for ${symbol}: ${response.status}`);
-                    }
-                    return null;
-                }
-
-                const data: OrderBookResponse = await response.json();
-
-                if (data.bids?.length > 0 && data.asks?.length > 0) {
-                    const bestBid = parseFloat(data.bids[0].price);
-                    const bestAsk = parseFloat(data.asks[0].price);
-
-                    if (bestBid > 0 && bestAsk > 0) {
-                        return this.createPriceData(normalizeSymbol(symbol), bestBid, bestAsk);
-                    }
-                }
-            } catch (error) {
-                console.error(`[${this.exchangeId}] REST fetch error for ${symbol}:`, error);
-            }
-            return null;
-        });
-
-        const results = await Promise.all(fetchPromises);
-        for (const result of results) {
-            if (result) prices.push(result);
+        // Split markets into chunks for parallel processing
+        const chunks: Array<Array<{ id: number; symbol: string }>> = [];
+        for (let i = 0; i < this.markets.length; i += this.BATCH_SIZE) {
+            chunks.push(this.markets.slice(i, i + this.BATCH_SIZE));
         }
 
-        console.log(`[${this.exchangeId}] REST fetched ${prices.length}/${this.markets.length} prices`);
+        // Process chunks sequentially, but items within each chunk in parallel
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+            const chunk = chunks[chunkIndex];
+
+            const chunkPromises = chunk.map(async ({ id, symbol }) => {
+                try {
+                    const response = await fetch(`${this.apiUrl}?market_id=${id}&limit=5`);
+
+                    if (!response.ok) {
+                        if (response.status !== 404) {
+                            console.error(`[${this.exchangeId}] REST error for ${symbol}: ${response.status}`);
+                        }
+                        return null;
+                    }
+
+                    const data: OrderBookResponse = await response.json();
+
+                    if (data.bids?.length > 0 && data.asks?.length > 0) {
+                        const bestBid = parseFloat(data.bids[0].price);
+                        const bestAsk = parseFloat(data.asks[0].price);
+
+                        if (bestBid > 0 && bestAsk > 0) {
+                            return this.createPriceData(normalizeSymbol(symbol), bestBid, bestAsk);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[${this.exchangeId}] REST fetch error for ${symbol}:`, error);
+                }
+                return null;
+            });
+
+            const chunkResults = await Promise.all(chunkPromises);
+            for (const result of chunkResults) {
+                if (result) prices.push(result);
+            }
+
+            // Add delay between batches to avoid rate limiting (except for last batch)
+            if (chunkIndex < chunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, this.BATCH_DELAY_MS));
+            }
+        }
+
+        console.log(`[${this.exchangeId}] REST fetched ${prices.length}/${this.markets.length} prices (${chunks.length} batches)`);
         return prices;
     }
 }
