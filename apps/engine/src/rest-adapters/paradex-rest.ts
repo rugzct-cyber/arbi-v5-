@@ -51,46 +51,64 @@ export class ParadexRESTAdapter extends BaseRESTAdapter {
         return `${symbol}-USD-PERP`;
     }
 
+    // Batch size for parallel requests
+    private readonly BATCH_SIZE = 15;
+    private readonly BATCH_DELAY_MS = 150;
+
     async fetchPrices(): Promise<PriceData[]> {
         const prices: PriceData[] = [];
+        const symbols = this.config.symbols;
 
-        const fetchPromises = this.config.symbols.map(async (symbol, index) => {
-            await new Promise(resolve => setTimeout(resolve, index * 50));
-
-            try {
-                const market = this.formatMarket(symbol);
-                const response = await fetch(`${this.apiUrl}/${market}?depth=1`);
-
-                if (!response.ok) {
-                    if (response.status !== 404) {
-                        console.error(`[${this.exchangeId}] REST error for ${symbol}: ${response.status}`);
-                    }
-                    return null;
-                }
-
-                const data: OrderbookResponse = await response.json();
-
-                // Format: bids: [["price", "size"]], asks: [["price", "size"]]
-                if (data.bids?.length > 0 && data.asks?.length > 0) {
-                    const bestBid = parseFloat(data.bids[0][0]);
-                    const bestAsk = parseFloat(data.asks[0][0]);
-
-                    if (bestBid > 0 && bestAsk > 0) {
-                        return this.createPriceData(normalizeSymbol(symbol), bestBid, bestAsk);
-                    }
-                }
-            } catch (error) {
-                console.error(`[${this.exchangeId}] REST fetch error for ${symbol}:`, error);
-            }
-            return null;
-        });
-
-        const results = await Promise.all(fetchPromises);
-        for (const result of results) {
-            if (result) prices.push(result);
+        // Split symbols into chunks for parallel processing
+        const chunks: string[][] = [];
+        for (let i = 0; i < symbols.length; i += this.BATCH_SIZE) {
+            chunks.push(symbols.slice(i, i + this.BATCH_SIZE));
         }
 
-        console.log(`[${this.exchangeId}] REST fetched ${prices.length}/${this.config.symbols.length} prices`);
+        // Process chunks sequentially, items within each chunk in parallel
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+            const chunk = chunks[chunkIndex];
+
+            const chunkPromises = chunk.map(async (symbol) => {
+                try {
+                    const market = this.formatMarket(symbol);
+                    const response = await fetch(`${this.apiUrl}/${market}?depth=1`);
+
+                    if (!response.ok) {
+                        if (response.status !== 404) {
+                            console.error(`[${this.exchangeId}] REST error for ${symbol}: ${response.status}`);
+                        }
+                        return null;
+                    }
+
+                    const data: OrderbookResponse = await response.json();
+
+                    if (data.bids?.length > 0 && data.asks?.length > 0) {
+                        const bestBid = parseFloat(data.bids[0][0]);
+                        const bestAsk = parseFloat(data.asks[0][0]);
+
+                        if (bestBid > 0 && bestAsk > 0) {
+                            return this.createPriceData(normalizeSymbol(symbol), bestBid, bestAsk);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[${this.exchangeId}] REST fetch error for ${symbol}:`, error);
+                }
+                return null;
+            });
+
+            const chunkResults = await Promise.all(chunkPromises);
+            for (const result of chunkResults) {
+                if (result) prices.push(result);
+            }
+
+            // Delay between batches (except for last batch)
+            if (chunkIndex < chunks.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, this.BATCH_DELAY_MS));
+            }
+        }
+
+        console.log(`[${this.exchangeId}] REST fetched ${prices.length}/${symbols.length} prices (${chunks.length} batches)`);
         return prices;
     }
 }
