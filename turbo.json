@@ -3,6 +3,12 @@
     "globalDependencies": [
         "**/.env.*local"
     ],
+    "globalEnv": [
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SOCKET_URL",
+        "PORT"
+    ],
     "tasks": {
         "build": {
             "dependsOn": [
