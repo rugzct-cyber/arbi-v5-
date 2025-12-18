@@ -48,29 +48,35 @@ export class RESTPoller {
      * Start polling at aligned 5-minute intervals (xx:00, xx:05, xx:10, etc.)
      */
     start(): void {
-        // Calculate delay until next aligned interval
+        // Calculate delay until next aligned 5-minute mark
         const now = new Date();
         const minutes = now.getMinutes();
         const seconds = now.getSeconds();
         const ms = now.getMilliseconds();
 
-        const nextAligned = Math.ceil((minutes + 1) / 5) * 5;
-        const minutesUntilNext = (nextAligned - minutes - 1 + 60) % 60 || 5;
-        const msUntilNext = (minutesUntilNext * 60 - seconds) * 1000 - ms;
+        // Next aligned minute: 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55
+        const currentSlot = Math.floor(minutes / 5) * 5;
+        const nextSlot = currentSlot + 5;
+        const nextAlignedMinute = nextSlot % 60;
 
-        console.log(`⏰ Next REST snapshot in ${Math.round(msUntilNext / 1000)}s at :${String(nextAligned % 60).padStart(2, '0')}`);
+        // Calculate milliseconds until next aligned time
+        const minutesUntilNext = (nextSlot - minutes + 60) % 60 || 5;
+        const msUntilNext = ((minutesUntilNext - 1) * 60 + (60 - seconds)) * 1000 - ms;
 
-        // Initial fetch after 30 seconds for testing
-        setTimeout(async () => {
-            console.log('🚀 Initial REST snapshot (30s after startup)...');
-            await this.fetchAndSave();
+        const nextTime = new Date(now.getTime() + msUntilNext);
+        console.log(`⏰ First REST snapshot at ${nextTime.toTimeString().slice(0, 8)} (in ${Math.round(msUntilNext / 1000)}s)`);
 
-            // Then start aligned polling
-            setTimeout(() => {
-                this.fetchAndSave(); // First aligned fetch
-                this.intervalHandle = setInterval(() => this.fetchAndSave(), this.intervalMs);
-            }, msUntilNext);
-        }, 30000);
+        // Wait for alignment, then start
+        setTimeout(() => {
+            console.log(`🚀 REST snapshot at ${new Date().toTimeString().slice(0, 8)}`);
+            this.fetchAndSave();
+
+            // Then repeat every 5 minutes exactly
+            this.intervalHandle = setInterval(() => {
+                console.log(`🚀 REST snapshot at ${new Date().toTimeString().slice(0, 8)}`);
+                this.fetchAndSave();
+            }, this.intervalMs);
+        }, msUntilNext);
     }
 
     /**
