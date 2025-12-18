@@ -21,6 +21,8 @@ interface DashboardProps {
     onRefresh: () => void;
     refreshInterval: number;
     onRefreshIntervalChange: (interval: number) => void;
+    alertCount?: number;
+    onOpenAlerts?: () => void;
 }
 
 const REFRESH_OPTIONS = [
@@ -40,7 +42,9 @@ export function Dashboard({
     lastRefresh,
     onRefresh,
     refreshInterval,
-    onRefreshIntervalChange
+    onRefreshIntervalChange,
+    alertCount = 0,
+    onOpenAlerts,
 }: DashboardProps) {
     // State for filtering
     const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(() => {
@@ -143,6 +147,19 @@ export function Dashboard({
                                     Refresh
                                 </button>
                             </div>
+
+                            {/* Alert Button */}
+                            {onOpenAlerts && (
+                                <button
+                                    className={styles.alertBtn}
+                                    onClick={onOpenAlerts}
+                                >
+                                    🔔
+                                    {alertCount > 0 && (
+                                        <span className={styles.alertBadge}>{alertCount}</span>
+                                    )}
+                                </button>
+                            )}
 
                             <div className={styles.status}>
                                 <span className={`status-dot ${isConnected ? 'status-connected' : 'status-disconnected'}`} />
