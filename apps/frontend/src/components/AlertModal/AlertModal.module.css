@@ -113,6 +113,51 @@
     cursor: not-allowed;
 }
 
+/* Token Dropdown */
+.field {
+    position: relative;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1d26;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dropdownItem {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    color: #d4d4d8;
+    font-size: 0.9375rem;
+    transition: background 0.15s;
+}
+
+.dropdownItem:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #f1f1f1;
+}
+
+.dropdownItem.selected {
+    background: rgba(99, 102, 241, 0.25);
+    color: #f1f1f1;
+}
+
+.dropdownEmpty {
+    padding: 0.75rem 1rem;
+    color: #71717a;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
 .row {
     display: flex;
     gap: 1rem;

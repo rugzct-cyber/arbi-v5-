@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { PriceUpdate } from '@arbitrage/shared';
 import styles from './AlertModal.module.css';
 
@@ -23,10 +23,26 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
     const [exchangeB, setExchangeB] = useState('');
     const [threshold, setThreshold] = useState('0.1');
 
+    // Token search state
+    const [tokenSearch, setTokenSearch] = useState('');
+    const [showTokenDropdown, setShowTokenDropdown] = useState(false);
+    const tokenInputRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
     // Get available symbols from prices
     const symbols = useMemo(() => {
         return Array.from(prices.keys()).sort();
     }, [prices]);
+
+    // Filter symbols based on search
+    const filteredSymbols = useMemo(() => {
+        if (!tokenSearch) return symbols;
+        const search = tokenSearch.toLowerCase();
+        return symbols.filter(s =>
+            s.toLowerCase().includes(search) ||
+            s.replace('-USD', '').toLowerCase().includes(search)
+        );
+    }, [symbols, tokenSearch]);
 
     // Get available exchanges for selected symbol
     const availableExchanges = useMemo(() => {
@@ -59,6 +75,25 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
         }
     }, [symbol, exchangeA, exchangeB, prices]);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setShowTokenDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelectToken = (s: string) => {
+        setSymbol(s);
+        setTokenSearch(s.replace('-USD', ''));
+        setShowTokenDropdown(false);
+        setExchangeA('');
+        setExchangeB('');
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!symbol || !exchangeA || !exchangeB) return;
@@ -70,11 +105,23 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
 
         // Reset form
         setSymbol('');
+        setTokenSearch('');
         setExchangeA('');
         setExchangeB('');
         setThreshold('0.1');
         onClose();
     };
+
+    // Reset form when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setSymbol('');
+            setTokenSearch('');
+            setExchangeA('');
+            setExchangeB('');
+            setThreshold('0.1');
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -87,29 +134,45 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
-                    {/* Symbol */}
-                    <div className={styles.field}>
+                    {/* Token Search */}
+                    <div className={styles.field} ref={dropdownRef}>
                         <label>Token</label>
-                        <select
-                            value={symbol}
+                        <input
+                            ref={tokenInputRef}
+                            type="text"
+                            value={tokenSearch}
                             onChange={e => {
-                                setSymbol(e.target.value);
-                                setExchangeA('');
-                                setExchangeB('');
+                                setTokenSearch(e.target.value);
+                                setShowTokenDropdown(true);
+                                if (!e.target.value) setSymbol('');
                             }}
-                            required
-                        >
-                            <option value="">Select token...</option>
-                            {symbols.map(s => (
-                                <option key={s} value={s}>{s.replace('-USD', '')}</option>
-                            ))}
-                        </select>
+                            onFocus={() => setShowTokenDropdown(true)}
+                            placeholder="Search token..."
+                            autoComplete="off"
+                        />
+                        {showTokenDropdown && (
+                            <div className={styles.dropdown}>
+                                {filteredSymbols.length === 0 ? (
+                                    <div className={styles.dropdownEmpty}>No tokens found</div>
+                                ) : (
+                                    filteredSymbols.slice(0, 10).map(s => (
+                                        <div
+                                            key={s}
+                                            className={`${styles.dropdownItem} ${symbol === s ? styles.selected : ''}`}
+                                            onClick={() => handleSelectToken(s)}
+                                        >
+                                            {s.replace('-USD', '')}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Exchanges Row */}
                     <div className={styles.row}>
                         <div className={styles.field}>
-                            <label>Exchange A</label>
+                            <label>Exchange</label>
                             <select
                                 value={exchangeA}
                                 onChange={e => setExchangeA(e.target.value)}
@@ -128,7 +191,7 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                         <div className={styles.arrow}>⇄</div>
 
                         <div className={styles.field}>
-                            <label>Exchange B</label>
+                            <label>Exchange</label>
                             <select
                                 value={exchangeB}
                                 onChange={e => setExchangeB(e.target.value)}
