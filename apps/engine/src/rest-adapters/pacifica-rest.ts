@@ -34,6 +34,7 @@ export class PacificaRESTAdapter extends BaseRESTAdapter {
                 'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
                 'PEPE', 'BONK', 'WLD', 'TRUMP', 'FARTCOIN', 'PENGU', 'ONDO',
                 'PENDLE', 'LDO', 'ATOM', 'ADA', 'CRV', 'GMX', 'DYDX', 'TRX', 'PAXG',
+                'MEGA', 'KAITO',
             ],
         });
     }

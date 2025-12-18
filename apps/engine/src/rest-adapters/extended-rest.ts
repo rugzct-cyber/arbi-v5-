@@ -37,6 +37,7 @@ export class ExtendedRESTAdapter extends BaseRESTAdapter {
                 'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
                 'PEPE', 'BONK', 'WLD', 'TRUMP', 'PENGU', 'ONDO',
                 'PENDLE', 'LDO', 'ATOM', 'ADA', 'CRV', 'GMX', 'DYDX', 'TRX', 'PAXG',
+                'MEGA', 'FARTCOIN', 'KAITO', 'ZRO', 'ZK', 'ASTER',
             ],
         });
     }
