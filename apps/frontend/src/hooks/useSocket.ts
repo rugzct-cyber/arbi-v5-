@@ -27,6 +27,7 @@ const DEFAULT_REFRESH_INTERVAL = 20000; // 20 seconds
 
 export function useSocket() {
     const [isConnected, setIsConnected] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Loading until first refresh
 
     // Refresh interval (0 = instant/live)
     const [refreshInterval, setRefreshInterval] = useState(DEFAULT_REFRESH_INTERVAL);
@@ -53,6 +54,7 @@ export function useSocket() {
         });
         setDisplayPrices(snapshot);
         setLastRefresh(new Date());
+        setIsLoading(false); // Data loaded after first refresh
     }, []);
 
     useEffect(() => {
@@ -137,10 +139,10 @@ export function useSocket() {
 
     // Auto-refresh based on selected interval
     useEffect(() => {
-        // Initial refresh after 1 second to show something
+        // Initial refresh after 5 seconds to allow all exchanges to connect and send first prices
         const initialTimeout = setTimeout(() => {
             refreshPrices();
-        }, 1000);
+        }, 5000);
 
         // If interval is 0 (instant), refresh on every price update via requestAnimationFrame
         if (refreshInterval === 0) {
@@ -182,6 +184,7 @@ export function useSocket() {
 
     return {
         isConnected,
+        isLoading,
         prices: displayPrices,
         opportunities,
         exchanges,
