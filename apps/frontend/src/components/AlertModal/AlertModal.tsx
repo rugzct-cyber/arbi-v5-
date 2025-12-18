@@ -9,10 +9,9 @@ interface AlertModalProps {
     onClose: () => void;
     onSubmit: (
         symbol: string,
-        buyExchange: string,
-        sellExchange: string,
-        threshold: number,
-        direction: 'above' | 'below'
+        exchangeA: string,
+        exchangeB: string,
+        threshold: number
     ) => void;
     prices: Map<string, Map<string, PriceUpdate>>;
     exchanges: string[];
@@ -20,10 +19,9 @@ interface AlertModalProps {
 
 export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: AlertModalProps) {
     const [symbol, setSymbol] = useState('');
-    const [buyExchange, setBuyExchange] = useState('');
-    const [sellExchange, setSellExchange] = useState('');
+    const [exchangeA, setExchangeA] = useState('');
+    const [exchangeB, setExchangeB] = useState('');
     const [threshold, setThreshold] = useState('0.1');
-    const [direction, setDirection] = useState<'above' | 'below'>('above');
 
     // Get available symbols from prices
     const symbols = useMemo(() => {
@@ -38,34 +36,43 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
         return Array.from(symbolPrices.keys()).sort();
     }, [symbol, prices, exchanges]);
 
-    // Calculate current spread
+    // Calculate current spread (best of both directions)
     const currentSpread = useMemo(() => {
-        if (!symbol || !buyExchange || !sellExchange) return null;
+        if (!symbol || !exchangeA || !exchangeB) return null;
         const symbolPrices = prices.get(symbol);
         if (!symbolPrices) return null;
 
-        const buy = symbolPrices.get(buyExchange);
-        const sell = symbolPrices.get(sellExchange);
-        if (!buy || !sell || buy.ask <= 0 || sell.bid <= 0) return null;
+        const priceA = symbolPrices.get(exchangeA);
+        const priceB = symbolPrices.get(exchangeB);
+        if (!priceA || !priceB) return null;
+        if (priceA.ask <= 0 || priceA.bid <= 0 || priceB.ask <= 0 || priceB.bid <= 0) return null;
 
-        return ((sell.bid - buy.ask) / buy.ask) * 100;
-    }, [symbol, buyExchange, sellExchange, prices]);
+        // Calculate both directions
+        const spreadAtoB = ((priceB.bid - priceA.ask) / priceA.ask) * 100;
+        const spreadBtoA = ((priceA.bid - priceB.ask) / priceB.ask) * 100;
+
+        // Return best spread with direction
+        if (spreadAtoB >= spreadBtoA) {
+            return { spread: spreadAtoB, direction: `${exchangeA}→${exchangeB}` };
+        } else {
+            return { spread: spreadBtoA, direction: `${exchangeB}→${exchangeA}` };
+        }
+    }, [symbol, exchangeA, exchangeB, prices]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!symbol || !buyExchange || !sellExchange) return;
+        if (!symbol || !exchangeA || !exchangeB) return;
 
         const thresholdNum = parseFloat(threshold);
         if (isNaN(thresholdNum)) return;
 
-        onSubmit(symbol, buyExchange, sellExchange, thresholdNum, direction);
+        onSubmit(symbol, exchangeA, exchangeB, thresholdNum);
 
         // Reset form
         setSymbol('');
-        setBuyExchange('');
-        setSellExchange('');
+        setExchangeA('');
+        setExchangeB('');
         setThreshold('0.1');
-        setDirection('above');
         onClose();
     };
 
@@ -87,8 +94,8 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                             value={symbol}
                             onChange={e => {
                                 setSymbol(e.target.value);
-                                setBuyExchange('');
-                                setSellExchange('');
+                                setExchangeA('');
+                                setExchangeB('');
                             }}
                             required
                         >
@@ -102,35 +109,35 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                     {/* Exchanges Row */}
                     <div className={styles.row}>
                         <div className={styles.field}>
-                            <label>Buy on</label>
+                            <label>Exchange A</label>
                             <select
-                                value={buyExchange}
-                                onChange={e => setBuyExchange(e.target.value)}
+                                value={exchangeA}
+                                onChange={e => setExchangeA(e.target.value)}
                                 required
                                 disabled={!symbol}
                             >
                                 <option value="">Select...</option>
                                 {availableExchanges
-                                    .filter(ex => ex !== sellExchange)
+                                    .filter(ex => ex !== exchangeB)
                                     .map(ex => (
                                         <option key={ex} value={ex}>{ex}</option>
                                     ))}
                             </select>
                         </div>
 
-                        <div className={styles.arrow}>→</div>
+                        <div className={styles.arrow}>⇄</div>
 
                         <div className={styles.field}>
-                            <label>Sell on</label>
+                            <label>Exchange B</label>
                             <select
-                                value={sellExchange}
-                                onChange={e => setSellExchange(e.target.value)}
+                                value={exchangeB}
+                                onChange={e => setExchangeB(e.target.value)}
                                 required
                                 disabled={!symbol}
                             >
                                 <option value="">Select...</option>
                                 {availableExchanges
-                                    .filter(ex => ex !== buyExchange)
+                                    .filter(ex => ex !== exchangeA)
                                     .map(ex => (
                                         <option key={ex} value={ex}>{ex}</option>
                                     ))}
@@ -141,35 +148,25 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                     {/* Current Spread Display */}
                     {currentSpread !== null && (
                         <div className={styles.currentSpread}>
-                            Current spread: <span className={currentSpread >= 0 ? styles.positive : styles.negative}>
-                                {currentSpread.toFixed(4)}%
+                            Best spread: <span className={currentSpread.spread >= 0 ? styles.positive : styles.negative}>
+                                {currentSpread.spread.toFixed(4)}%
                             </span>
+                            <span className={styles.direction}>({currentSpread.direction})</span>
                         </div>
                     )}
 
-                    {/* Threshold Row */}
-                    <div className={styles.row}>
-                        <div className={styles.field}>
-                            <label>Alert when spread is</label>
-                            <select
-                                value={direction}
-                                onChange={e => setDirection(e.target.value as 'above' | 'below')}
-                            >
-                                <option value="above">≥ Above</option>
-                                <option value="below">≤ Below</option>
-                            </select>
-                        </div>
-
-                        <div className={styles.field}>
-                            <label>Threshold (%)</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={threshold}
-                                onChange={e => setThreshold(e.target.value)}
-                                required
-                            />
-                        </div>
+                    {/* Threshold */}
+                    <div className={styles.field}>
+                        <label>Alert when spread ≥ (%)</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={threshold}
+                            onChange={e => setThreshold(e.target.value)}
+                            required
+                            placeholder="0.1"
+                        />
                     </div>
 
                     {/* Submit */}
@@ -180,7 +177,7 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                         <button
                             type="submit"
                             className={styles.submitBtn}
-                            disabled={!symbol || !buyExchange || !sellExchange}
+                            disabled={!symbol || !exchangeA || !exchangeB}
                         >
                             Create Alert
                         </button>

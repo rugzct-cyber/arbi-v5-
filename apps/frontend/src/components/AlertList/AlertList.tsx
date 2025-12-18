@@ -8,7 +8,7 @@ interface AlertListProps {
     onToggle: (id: string) => void;
     onRemove: (id: string) => void;
     onReset: (id: string) => void;
-    getSpread: (alert: SpreadAlert) => number | null;
+    getSpread: (alert: SpreadAlert) => { spread: number; direction: string } | null;
 }
 
 export function AlertList({ alerts, onToggle, onRemove, onReset, getSpread }: AlertListProps) {
@@ -24,7 +24,7 @@ export function AlertList({ alerts, onToggle, onRemove, onReset, getSpread }: Al
     return (
         <div className={styles.list}>
             {alerts.map(alert => {
-                const currentSpread = getSpread(alert);
+                const result = getSpread(alert);
                 const isTriggered = !!alert.triggeredAt;
 
                 return (
@@ -37,23 +37,19 @@ export function AlertList({ alerts, onToggle, onRemove, onReset, getSpread }: Al
                                 {alert.symbol.replace('-USD', '')}
                             </div>
                             <div className={styles.exchanges}>
-                                {alert.buyExchange} → {alert.sellExchange}
+                                {alert.exchangeA} ⇄ {alert.exchangeB}
                             </div>
                         </div>
 
                         <div className={styles.condition}>
-                            <span className={styles.direction}>
-                                {alert.direction === 'above' ? '≥' : '≤'}
-                            </span>
-                            <span className={styles.threshold}>
-                                {alert.threshold}%
-                            </span>
+                            <span className={styles.direction}>≥</span>
+                            <span className={styles.threshold}>{alert.threshold}%</span>
                         </div>
 
-                        {currentSpread !== null && (
+                        {result !== null && (
                             <div className={styles.current}>
-                                <span className={currentSpread >= 0 ? styles.positive : styles.negative}>
-                                    {currentSpread.toFixed(3)}%
+                                <span className={result.spread >= 0 ? styles.positive : styles.negative}>
+                                    {result.spread.toFixed(3)}%
                                 </span>
                             </div>
                         )}

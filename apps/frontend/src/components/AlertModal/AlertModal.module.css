@@ -83,6 +83,23 @@
     font-size: 0.9375rem;
     outline: none;
     transition: border-color 0.2s, background 0.2s;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a1aa' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+    cursor: pointer;
+}
+
+.field select option {
+    background: #1a1d26;
+    color: #f1f1f1;
+    padding: 0.5rem;
 }
 
 .field select:focus,
@@ -125,6 +142,12 @@
 .currentSpread .negative {
     color: #ef4444;
     font-weight: 600;
+}
+
+.direction {
+    font-size: 0.75rem;
+    color: #71717a;
+    margin-left: 0.5rem;
 }
 
 .actions {

@@ -6,10 +6,9 @@ import type { PriceUpdate } from '@arbitrage/shared';
 export interface SpreadAlert {
     id: string;
     symbol: string;
-    buyExchange: string;
-    sellExchange: string;
+    exchangeA: string;
+    exchangeB: string;
     threshold: number;
-    direction: 'above' | 'below';
     enabled: boolean;
     createdAt: string;
     triggeredAt?: string;
@@ -18,10 +17,11 @@ export interface SpreadAlert {
 export interface AlertTrigger {
     alert: SpreadAlert;
     currentSpread: number;
+    direction: string; // "A→B" or "B→A"
     timestamp: Date;
 }
 
-const STORAGE_KEY = 'spread-alerts';
+const STORAGE_KEY = 'spread-alerts-v2';
 
 // Generate unique ID
 function generateId(): string {
@@ -67,19 +67,29 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
         }
     }, [alerts]);
 
-    // Calculate spread for an alert
-    const calculateSpread = useCallback((alert: SpreadAlert): number | null => {
+    // Calculate spread for an alert (returns best spread regardless of direction)
+    const calculateSpread = useCallback((alert: SpreadAlert): { spread: number; direction: string } | null => {
         const symbolPrices = prices.get(alert.symbol);
         if (!symbolPrices) return null;
 
-        const buyPrice = symbolPrices.get(alert.buyExchange);
-        const sellPrice = symbolPrices.get(alert.sellExchange);
+        const priceA = symbolPrices.get(alert.exchangeA);
+        const priceB = symbolPrices.get(alert.exchangeB);
 
-        if (!buyPrice || !sellPrice) return null;
-        if (buyPrice.ask <= 0 || sellPrice.bid <= 0) return null;
+        if (!priceA || !priceB) return null;
+        if (priceA.ask <= 0 || priceA.bid <= 0 || priceB.ask <= 0 || priceB.bid <= 0) return null;
 
-        // Spread = (sell bid - buy ask) / buy ask * 100
-        return ((sellPrice.bid - buyPrice.ask) / buyPrice.ask) * 100;
+        // Calculate spread both ways
+        // Direction A→B: Buy on A (ask), Sell on B (bid)
+        const spreadAtoB = ((priceB.bid - priceA.ask) / priceA.ask) * 100;
+        // Direction B→A: Buy on B (ask), Sell on A (bid)
+        const spreadBtoA = ((priceA.bid - priceB.ask) / priceB.ask) * 100;
+
+        // Return the best spread (highest positive spread)
+        if (spreadAtoB >= spreadBtoA) {
+            return { spread: spreadAtoB, direction: `${alert.exchangeA}→${alert.exchangeB}` };
+        } else {
+            return { spread: spreadBtoA, direction: `${alert.exchangeB}→${alert.exchangeA}` };
+        }
     }, [prices]);
 
     // Check alerts against current prices
@@ -88,17 +98,16 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
         const newTriggers: AlertTrigger[] = [];
 
         for (const alert of enabledAlerts) {
-            const spread = calculateSpread(alert);
-            if (spread === null) continue;
+            const result = calculateSpread(alert);
+            if (result === null) continue;
 
-            const shouldTrigger = alert.direction === 'above'
-                ? spread >= alert.threshold
-                : spread <= alert.threshold;
+            const shouldTrigger = result.spread >= alert.threshold;
 
             if (shouldTrigger && !alert.triggeredAt) {
                 newTriggers.push({
                     alert,
-                    currentSpread: spread,
+                    currentSpread: result.spread,
+                    direction: result.direction,
                     timestamp: new Date(),
                 });
 
@@ -121,18 +130,16 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
     // Add a new alert
     const addAlert = useCallback((
         symbol: string,
-        buyExchange: string,
-        sellExchange: string,
-        threshold: number,
-        direction: 'above' | 'below' = 'above'
+        exchangeA: string,
+        exchangeB: string,
+        threshold: number
     ): SpreadAlert => {
         const newAlert: SpreadAlert = {
             id: generateId(),
             symbol,
-            buyExchange,
-            sellExchange,
+            exchangeA,
+            exchangeB,
             threshold,
-            direction,
             enabled: true,
             createdAt: new Date().toISOString(),
         };
@@ -165,7 +172,7 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
     }, []);
 
     // Get current spread for an alert
-    const getSpread = useCallback((alert: SpreadAlert): number | null => {
+    const getSpread = useCallback((alert: SpreadAlert): { spread: number; direction: string } | null => {
         return calculateSpread(alert);
     }, [calculateSpread]);
 
