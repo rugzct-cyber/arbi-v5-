@@ -179,13 +179,27 @@ export function PriceTable({
     }, [calculatedPrices, sortedSymbols]);
 
 
+    const handleDebug = () => {
+        console.log('=== DEBUG NADO ===');
+        console.log('Selected Exchanges:', Array.from(selectedExchanges));
+        console.log('Active Exchange IDs:', activeExchangeIds);
+        const btc = calculatedPrices.find(p => p.symbol === 'BTC');
+        if (btc) {
+            console.log('BTC Row Exchanges:', btc.exchanges);
+            const nado = btc.exchanges.find(e => e.exchange === 'nado');
+            console.log('Nado found in BTC:', nado);
+        } else {
+            console.log('BTC Row not found in calculatedPrices');
+        }
+    };
+
     return (
         <div className={styles.tableContainer}>
             <table className={styles.priceTable}>
                 <colgroup>
-                    <col style={{ width: '50px' }} />
-                    <col style={{ width: '50px' }} />
-                    <col style={{ width: '70px' }} />
+                    <col style={{ width: '60px' }} />
+                    <col style={{ width: '60px' }} />
+                    <col style={{ width: '100px' }} />
                     {activeExchangeIds.map(exId => (
                         <col key={exId} />
                     ))}
