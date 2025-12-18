@@ -22,11 +22,12 @@ export class VestRESTAdapter extends BaseRESTAdapter {
 
     constructor(config?: Partial<RESTAdapterConfig>) {
         super({
+            // Complete list from WebSocket adapter (crypto only - no stocks)
             symbols: config?.symbols || [
                 'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX',
                 'SUI', 'TON', 'TAO', 'NEAR', 'AAVE', 'HYPE', 'BERA',
                 'WLD', 'WIF', 'JUP', 'ENA', 'FARTCOIN', 'ONDO',
-                'KAITO', 'ASTER', 'ZRO', 'ZK', 'PAXG',
+                'KAITO', 'ASTER', 'ZRO', 'ZK', 'PAXG', 'MEGA',
             ],
         });
     }

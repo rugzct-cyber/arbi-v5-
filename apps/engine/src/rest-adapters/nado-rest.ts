@@ -21,7 +21,7 @@ export class NadoRESTAdapter extends BaseRESTAdapter {
     readonly exchangeId = 'nado';
     private readonly apiUrl = 'https://gateway.prod.nado.xyz/v2/orderbook';
 
-    // Ticker ID to Symbol mapping
+    // Ticker ID to Symbol mapping (complete list from WebSocket)
     private readonly tickers: Array<{ ticker_id: string; symbol: string }> = [
         { ticker_id: 'BTC-PERP_USDT0', symbol: 'BTC' },
         { ticker_id: 'ETH-PERP_USDT0', symbol: 'ETH' },
@@ -29,6 +29,8 @@ export class NadoRESTAdapter extends BaseRESTAdapter {
         { ticker_id: 'XRP-PERP_USDT0', symbol: 'XRP' },
         { ticker_id: 'BNB-PERP_USDT0', symbol: 'BNB' },
         { ticker_id: 'HYPE-PERP_USDT0', symbol: 'HYPE' },
+        { ticker_id: 'ZEC-PERP_USDT0', symbol: 'ZEC' },
+        { ticker_id: 'MON-PERP_USDT0', symbol: 'MON' },
         { ticker_id: 'FARTCOIN-PERP_USDT0', symbol: 'FARTCOIN' },
     ];
 

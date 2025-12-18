@@ -28,13 +28,24 @@ export class PacificaRESTAdapter extends BaseRESTAdapter {
 
     constructor(config?: Partial<RESTAdapterConfig>) {
         super({
+            // Complete list from WebSocket adapter
             symbols: config?.symbols || [
+                // Tier 1 - Major tokens
                 'BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'AVAX', 'SUI', 'LINK', 'LTC',
+                // Tier 2 - Popular alts
                 'ARB', 'OP', 'APT', 'NEAR', 'DOT', 'TON', 'TAO', 'TIA',
                 'AAVE', 'UNI', 'ENA', 'SEI', 'WIF', 'JUP', 'HYPE', 'BERA',
+                // Tier 3 - Trending tokens
                 'PEPE', 'BONK', 'WLD', 'TRUMP', 'FARTCOIN', 'PENGU', 'ONDO',
-                'PENDLE', 'LDO', 'ATOM', 'ADA', 'CRV', 'GMX', 'DYDX', 'TRX', 'PAXG',
-                'MEGA', 'KAITO',
+                'PENDLE', 'LDO', 'ATOM', 'ADA',
+                // Tier 4 - Additional tokens
+                'AERO', 'APEX', 'ASTER', 'AVNT', 'CAKE', 'CRV', 'EIGEN', 'GOAT', 'GRASS', 'IP',
+                'KAITO', 'LINEA', 'MNT', 'MON', 'MOODENG', 'POPCAT', 'PUMP', 'RESOLV', 'S',
+                'SNX', 'STRK', 'TRX', 'VIRTUAL', 'WLFI', 'XPL', 'ZEC', 'ZORA', 'ZRO',
+                // Tier 5 - More tokens
+                '0G', 'AIXBT', 'BCH', 'FIL', 'GMX', 'DYDX', 'HBAR', 'ICP', 'INIT', 'INJ', 'JTO',
+                'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XLM', 'XMR', 'ZK',
+                'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', 'MEGA',
             ],
         });
     }

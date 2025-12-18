@@ -19,7 +19,7 @@ export class LighterRESTAdapter extends BaseRESTAdapter {
     readonly exchangeId = 'lighter';
     private readonly apiUrl = 'https://mainnet.zklighter.elliot.ai/api/v1/orderBookOrders';
 
-    // Market ID to symbol mapping (from WebSocket adapter)
+    // Complete market ID to symbol mapping (from WebSocket adapter)
     private readonly markets: Array<{ id: number; symbol: string }> = [
         { id: 0, symbol: 'ETH' }, { id: 1, symbol: 'BTC' }, { id: 2, symbol: 'SOL' },
         { id: 3, symbol: 'DOGE' }, { id: 7, symbol: 'XRP' }, { id: 8, symbol: 'LINK' },
@@ -33,6 +33,7 @@ export class LighterRESTAdapter extends BaseRESTAdapter {
         { id: 46, symbol: 'LDO' }, { id: 47, symbol: 'PENGU' }, { id: 48, symbol: 'PAXG' },
         { id: 50, symbol: 'ARB' }, { id: 55, symbol: 'OP' }, { id: 61, symbol: 'GMX' },
         { id: 62, symbol: 'DYDX' }, { id: 67, symbol: 'TIA' },
+        // Additional markets if they exist on Lighter
     ];
 
     constructor(config?: Partial<RESTAdapterConfig>) {
