@@ -15,6 +15,8 @@ export abstract class BaseExchangeAdapter {
     protected maxReconnectAttempts = 10;
     protected reconnectDelay = 1000;
     protected isConnecting = false;
+    protected watchdogTimer: NodeJS.Timeout | null = null;
+    protected readonly watchdogInterval = 15000; // 15 seconds
 
     abstract readonly exchangeId: string;
     abstract readonly wsUrl: string;
@@ -48,12 +50,14 @@ export abstract class BaseExchangeAdapter {
                 this.ws.on('open', () => {
                     this.isConnecting = false;
                     this.reconnectAttempts = 0;
+                    this.startWatchdog();
                     this.onOpen();
                     this.config.onConnected();
                     resolve();
                 });
 
                 this.ws.on('message', (data) => {
+                    this.resetWatchdog();
                     try {
                         this.onMessage(data);
                     } catch (error) {
@@ -68,6 +72,7 @@ export abstract class BaseExchangeAdapter {
                 });
 
                 this.ws.on('close', () => {
+                    this.stopWatchdog();
                     this.isConnecting = false;
                     this.config.onDisconnected();
                     this.scheduleReconnect();
@@ -75,6 +80,7 @@ export abstract class BaseExchangeAdapter {
 
             } catch (error) {
                 this.isConnecting = false;
+                this.stopWatchdog();
                 reject(error);
             }
         });
@@ -97,10 +103,36 @@ export abstract class BaseExchangeAdapter {
     }
 
     async disconnect(): Promise<void> {
+        this.stopWatchdog();
         if (this.ws) {
             this.ws.close();
             this.ws = null;
         }
+    }
+
+    protected startWatchdog(): void {
+        this.resetWatchdog();
+    }
+
+    protected stopWatchdog(): void {
+        if (this.watchdogTimer) {
+            clearTimeout(this.watchdogTimer);
+            this.watchdogTimer = null;
+        }
+    }
+
+    protected resetWatchdog(): void {
+        if (this.watchdogTimer) {
+            clearTimeout(this.watchdogTimer);
+        }
+
+        this.watchdogTimer = setTimeout(() => {
+            console.warn(`[${this.exchangeId}] Watchdog timeout - no data for ${this.watchdogInterval}ms`);
+            if (this.ws) {
+                console.log(`[${this.exchangeId}] Terminating zombie connection...`);
+                this.ws.terminate(); // Force close to trigger 'close' event and reconnection
+            }
+        }, this.watchdogInterval);
     }
 
     protected send(data: unknown): void {

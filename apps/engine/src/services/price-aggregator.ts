@@ -2,7 +2,7 @@ import type { PriceData, AggregatedPrice } from '@arbitrage/shared';
 
 export class PriceAggregator {
     private prices: Map<string, Map<string, PriceData>> = new Map();
-    private maxAge = 30000; // 30 seconds
+    private maxAge = 2000; // 2 seconds
 
     /**
      * Update price and return aggregated view

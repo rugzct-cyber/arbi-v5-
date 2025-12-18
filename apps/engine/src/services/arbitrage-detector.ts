@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import type { AggregatedPrice, ArbitrageOpportunity, ArbitrageConfig } from '@arbitrage/shared';
 
 export class ArbitrageDetector {
@@ -52,7 +51,7 @@ export class ArbitrageDetector {
         }
 
         const opportunity: ArbitrageOpportunity = {
-            id: uuidv4(),
+            id: `${Date.now()}-${symbol}-${bestAsk.exchange}-${bestBid.exchange}`,
             symbol,
             buyExchange: bestAsk.exchange,
             sellExchange: bestBid.exchange,
