@@ -1,4 +1,5 @@
 import type { AggregatedPrice, ArbitrageOpportunity, ArbitrageConfig } from '@arbitrage/shared';
+import { EngineConfig } from '../config.js';
 
 export class ArbitrageDetector {
     private config: ArbitrageConfig;
@@ -8,9 +9,12 @@ export class ArbitrageDetector {
     constructor(config: Partial<ArbitrageConfig> = {}) {
         this.config = {
             minSpreadPercent: config.minSpreadPercent ?? 0.1,
-            maxAge: config.maxAge ?? 5000,
+            maxAge: config.maxAge ?? EngineConfig.ARBITRAGE_COOLDOWN,
             symbols: config.symbols ?? [],
         };
+
+        // Run cleanup every 30 seconds to avoid O(N) on hot path
+        setInterval(() => this.cleanup(), 30000);
     }
 
     /**
@@ -64,8 +68,7 @@ export class ArbitrageDetector {
 
         this.recentOpportunities.set(pairKey, opportunity);
 
-        // Cleanup old opportunities
-        this.cleanup();
+
 
         return opportunity;
     }

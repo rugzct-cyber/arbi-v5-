@@ -1,8 +1,15 @@
 import type { PriceData, AggregatedPrice } from '@arbitrage/shared';
+import { EngineConfig } from '../config.js';
 
 export class PriceAggregator {
     private prices: Map<string, Map<string, PriceData>> = new Map();
-    private maxAge = 2000; // 2 seconds
+    private maxAge = EngineConfig.MAX_PRICE_AGE;
+    private cleanupInterval: NodeJS.Timeout;
+
+    constructor() {
+        // Run cleanup every second
+        this.cleanupInterval = setInterval(() => this.cleanup(), 1000);
+    }
 
     /**
      * Update price and return aggregated view
@@ -42,8 +49,6 @@ export class PriceAggregator {
         for (const [exchange, price] of symbolPrices) {
             if (now - price.timestamp <= this.maxAge) {
                 validPrices.push(price);
-            } else {
-                symbolPrices.delete(exchange);
             }
         }
 
@@ -99,5 +104,21 @@ export class PriceAggregator {
      */
     clear(): void {
         this.prices.clear();
+    }
+    /**
+     * Periodic cleanup of stale prices
+     */
+    private cleanup(): void {
+        const now = Date.now();
+        for (const [symbol, symbolPrices] of this.prices) {
+            for (const [exchange, price] of symbolPrices) {
+                if (now - price.timestamp > this.maxAge) {
+                    symbolPrices.delete(exchange);
+                }
+            }
+            if (symbolPrices.size === 0) {
+                this.prices.delete(symbol);
+            }
+        }
     }
 }
