@@ -6,10 +6,9 @@ import { PriceAggregator } from './services/price-aggregator.js';
 import { ArbitrageDetector } from './services/arbitrage-detector.js';
 import { Broadcaster } from './services/broadcaster.js';
 import { SupabasePriceClient } from './database/supabase.js';
-import type { PriceData } from '@arbitrage/shared';
+import { RESTPoller } from './rest-adapters/index.js';
 
 const PORT = process.env.PORT || 3001;
-const DB_SAMPLE_INTERVAL = 5 * 60 * 1000; // 5 minutes in ms
 
 async function main() {
     console.log('🚀 Starting Arbitrage Engine v5...');
@@ -36,17 +35,10 @@ async function main() {
     let lastLogTime = Date.now();
     const logInterval = 5000; // Log every 5 seconds
 
-    // Store latest prices for 5-min sampling
-    const latestPrices = new Map<string, PriceData>();
-
-    // Initialize exchange connections
+    // Initialize exchange connections (WebSocket for real-time frontend)
     const exchangeManager = new ExchangeManager({
         onPrice: async (price) => {
             priceCount++;
-
-            // Store latest price (key = exchange:symbol)
-            const key = `${price.exchange}:${price.symbol}`;
-            latestPrices.set(key, price);
 
             // Log sample prices every 5 seconds
             const now = Date.now();
@@ -61,7 +53,7 @@ async function main() {
             // Detect arbitrage
             const opportunity = arbitrageDetector.detect(aggregated);
 
-            // Broadcast to clients
+            // Broadcast to clients (frontend real-time)
             broadcaster.broadcastPrice(price);
             if (opportunity) {
                 broadcaster.broadcastOpportunity(opportunity);
@@ -81,64 +73,26 @@ async function main() {
         },
     });
 
-    // Function to insert prices at aligned times (xx:00, xx:05, xx:10, xx:15, etc.)
-    const insertPrices = async () => {
-        if (latestPrices.size === 0) return;
+    // Initialize REST Poller for synchronized DB snapshots
+    const restPoller = new RESTPoller({ supabase });
 
-        const prices = Array.from(latestPrices.values());
-        const now = new Date();
-        console.log(`💾 [${now.toISOString()}] Sampling ${prices.length} prices to Supabase...`);
-
-        try {
-            await supabase.insertBatch(prices);
-            console.log(`✅ Saved ${prices.length} prices to Supabase`);
-        } catch (error) {
-            console.error('❌ Supabase batch insert failed:', error);
-        }
-    };
-
-    // Schedule next aligned insert (xx:00, xx:05, xx:10, xx:15, etc.)
-    const scheduleNextInsert = () => {
-        const now = new Date();
-        const minutes = now.getMinutes();
-        const seconds = now.getSeconds();
-        const ms = now.getMilliseconds();
-
-        // Calculate next aligned time (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
-        const nextAligned = Math.ceil((minutes + 1) / 5) * 5;
-        const minutesUntilNext = (nextAligned - minutes - 1 + 60) % 60 || 5;
-        const msUntilNext = (minutesUntilNext * 60 - seconds) * 1000 - ms;
-
-        console.log(`⏰ Next QuestDB insert in ${Math.round(msUntilNext / 1000)}s at :${String((nextAligned % 60)).padStart(2, '0')}`);
-
-        setTimeout(async () => {
-            await insertPrices();
-            // After inserting, schedule next one in exactly 5 minutes
-            setInterval(insertPrices, DB_SAMPLE_INTERVAL);
-        }, msUntilNext);
-    };
-
-    // Initial insert 30 seconds after startup (to collect some prices first)
-    setTimeout(async () => {
-        console.log('🚀 Initial QuestDB insert (30s after startup)...');
-        await insertPrices();
-        // Then schedule aligned inserts
-        scheduleNextInsert();
-    }, 30000);
-
-    // Start exchange connections
+    // Start exchange WebSocket connections (for frontend real-time)
     await exchangeManager.connectAll();
+
+    // Start REST polling for DB (synchronized snapshots every 5 minutes)
+    restPoller.start();
 
     // Start HTTP server
     httpServer.listen(PORT, () => {
         console.log(`✅ Engine running on port ${PORT}`);
-        console.log(`📡 Socket.io ready for connections`);
-        console.log(`💾 Supabase sampling every 5 minutes`);
+        console.log(`📡 Socket.io ready for connections (WebSocket → frontend)`);
+        console.log(`💾 REST API polling for Supabase every 5 minutes`);
     });
 
     // Graceful shutdown
     const shutdown = async () => {
         console.log('\n🛑 Shutting down...');
+        restPoller.stop();
         await exchangeManager.disconnectAll();
         await supabase.close();
         httpServer.close();
@@ -150,3 +104,4 @@ async function main() {
 }
 
 main().catch(console.error);
+
