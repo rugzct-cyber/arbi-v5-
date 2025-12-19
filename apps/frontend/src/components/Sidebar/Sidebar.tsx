@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import styles from './Sidebar.module.css';
 
 interface ExchangeStatus {
@@ -86,6 +87,17 @@ export function Sidebar({
                                         <span
                                             className={`${styles.statusDot} ${exchange.connected ? styles.online : styles.offline
                                                 }`}
+                                        />
+                                        <Image
+                                            src={`/assets/logos/${exchange.id}.png`}
+                                            alt={exchange.id}
+                                            width={20}
+                                            height={20}
+                                            className={styles.exchangeLogo}
+                                            onError={(e) => {
+                                                // Hide if logo doesn't exist
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
                                         />
                                         <span className={styles.exchangeName}>
                                             {exchange.id.toUpperCase()}
