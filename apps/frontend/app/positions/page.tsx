@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { ExitSpreadChart } from '@/components/ExitSpreadChart/ExitSpreadChart';
 import { Header } from '@/components/Header';
@@ -16,6 +16,10 @@ interface Position {
     tokenAmount: number;
     entrySpread: number;
     timestamp: number;
+    // Alarm fields
+    alarmEnabled?: boolean;
+    alarmThreshold?: number; // Exit spread threshold in %
+    alarmTriggered?: boolean;
 }
 
 interface SpreadPoint {
@@ -58,6 +62,12 @@ export default function PositionsPage() {
 
     // Spread history for chart
     const [spreadHistory, setSpreadHistory] = useState<SpreadPoint[]>([]);
+
+    // Alarm state
+    const [alarmThresholdInput, setAlarmThresholdInput] = useState('');
+    const [showAlarmConfig, setShowAlarmConfig] = useState(false);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Load positions from localStorage
     useEffect(() => {
@@ -155,6 +165,120 @@ export default function PositionsPage() {
             });
         }
     }, [exitSpreadData, selectedPosition]);
+
+    // Play profit alarm sound
+    const playAlarmSound = useCallback(() => {
+        try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const ctx = audioContextRef.current;
+
+            // Create a more distinctive profit sound: ascending notes
+            const notes = [523, 659, 784]; // C5, E5, G5 - major chord
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.2);
+                }, i * 120);
+            });
+        } catch (e) {
+            console.log('Audio not available:', e);
+        }
+    }, []);
+
+    // Calculate current P&L
+    const currentPnL = useMemo(() => {
+        if (!exitSpreadData || !selectedPosition) return null;
+        return ((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) +
+            (exitSpreadData.longBid - exitSpreadData.shortAsk)) * selectedPosition.tokenAmount;
+    }, [exitSpreadData, selectedPosition]);
+
+    // Check alarm trigger - based on exit spread %
+    useEffect(() => {
+        if (!selectedPosition || !exitSpreadData) return;
+        if (!selectedPosition.alarmEnabled || selectedPosition.alarmTriggered) return;
+        if (selectedPosition.alarmThreshold === undefined) return;
+
+        // Trigger when exit spread reaches or exceeds threshold
+        if (exitSpreadData.exitSpread >= selectedPosition.alarmThreshold) {
+            // Trigger alarm!
+            playAlarmSound();
+
+            // Mark as triggered
+            setPositions(prev => prev.map(p =>
+                p.id === selectedPosition.id ? { ...p, alarmTriggered: true } : p
+            ));
+            setSelectedPosition(prev => prev ? { ...prev, alarmTriggered: true } : null);
+
+            // Repeat sound every 10 seconds
+            soundIntervalRef.current = setInterval(playAlarmSound, 10000);
+        }
+
+        return () => {
+            if (soundIntervalRef.current) {
+                clearInterval(soundIntervalRef.current);
+            }
+        };
+    }, [exitSpreadData, selectedPosition, playAlarmSound]);
+
+    // Toggle alarm on/off
+    const handleToggleAlarm = () => {
+        if (!selectedPosition) return;
+
+        if (selectedPosition.alarmEnabled) {
+            // Disable alarm
+            if (soundIntervalRef.current) {
+                clearInterval(soundIntervalRef.current);
+                soundIntervalRef.current = null;
+            }
+            setPositions(prev => prev.map(p =>
+                p.id === selectedPosition.id ? { ...p, alarmEnabled: false, alarmTriggered: false } : p
+            ));
+            setSelectedPosition(prev => prev ? { ...prev, alarmEnabled: false, alarmTriggered: false } : null);
+        } else {
+            // Show config to enable
+            setShowAlarmConfig(true);
+            setAlarmThresholdInput(selectedPosition.alarmThreshold?.toString() || '');
+        }
+    };
+
+    // Save alarm config
+    const handleSaveAlarm = () => {
+        if (!selectedPosition) return;
+        const threshold = parseFloat(alarmThresholdInput);
+        if (isNaN(threshold)) {
+            setShowAlarmConfig(false);
+            return;
+        }
+
+        setPositions(prev => prev.map(p =>
+            p.id === selectedPosition.id ? { ...p, alarmEnabled: true, alarmThreshold: threshold, alarmTriggered: false } : p
+        ));
+        setSelectedPosition(prev => prev ? { ...prev, alarmEnabled: true, alarmThreshold: threshold, alarmTriggered: false } : null);
+        setShowAlarmConfig(false);
+    };
+
+    // Dismiss triggered alarm
+    const handleDismissAlarm = () => {
+        if (!selectedPosition) return;
+        if (soundIntervalRef.current) {
+            clearInterval(soundIntervalRef.current);
+            soundIntervalRef.current = null;
+        }
+        setPositions(prev => prev.map(p =>
+            p.id === selectedPosition.id ? { ...p, alarmEnabled: false, alarmTriggered: false } : p
+        ));
+        setSelectedPosition(prev => prev ? { ...prev, alarmEnabled: false, alarmTriggered: false } : null);
+    };
 
     // Add new position
     const handleAddPosition = () => {
@@ -454,18 +578,35 @@ export default function PositionsPage() {
                                     <span className={styles.statLabel}>ASK ACTUEL (SHORT)</span>
                                     <span className={styles.statValue}>${exitSpreadData?.shortAsk.toFixed(2) || '-'}</span>
                                 </div>
-                                <div className={styles.statCard}>
-                                    <span className={styles.statLabel}>SPREAD SORTIE</span>
+                                <div className={`${styles.statCard} ${selectedPosition.alarmTriggered ? styles.alarmTriggered : ''}`}>
+                                    <div className={styles.statHeader}>
+                                        <span className={styles.statLabel}>SPREAD SORTIE</span>
+                                        <button
+                                            className={`${styles.alarmButton} ${selectedPosition.alarmEnabled ? styles.alarmActive : ''}`}
+                                            onClick={handleToggleAlarm}
+                                            title={selectedPosition.alarmEnabled ? 'Désactiver alarme' : 'Activer alarme sortie'}
+                                        >
+                                            🔔
+                                        </button>
+                                    </div>
                                     <span className={`${styles.statValue} ${exitSpreadData?.isInProfit ? styles.positive : styles.negative}`}>
                                         ${exitSpreadData ? (exitSpreadData.longBid - exitSpreadData.shortAsk).toFixed(2) : '-'} ({exitSpreadData?.exitSpread.toFixed(4) || '-'}%)
                                     </span>
+                                    {selectedPosition.alarmEnabled && (
+                                        <span className={styles.alarmThresholdDisplay}>
+                                            Alarme à {selectedPosition.alarmThreshold?.toFixed(2)}%
+                                        </span>
+                                    )}
+                                    {selectedPosition.alarmTriggered && (
+                                        <button className={styles.dismissAlarmBtn} onClick={handleDismissAlarm}>
+                                            ✓ Fermer l'alarme
+                                        </button>
+                                    )}
                                 </div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>P&L $ (TOTAL)</span>
                                     <span className={`${styles.statValue} ${exitSpreadData?.isInProfit ? styles.positive : styles.negative}`}>
-                                        ${exitSpreadData && selectedPosition.tokenAmount
-                                            ? (((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) + (exitSpreadData.longBid - exitSpreadData.shortAsk)) * selectedPosition.tokenAmount).toFixed(2)
-                                            : '-'}
+                                        ${currentPnL?.toFixed(2) || '-'}
                                     </span>
                                 </div>
                             </div>
@@ -506,6 +647,36 @@ export default function PositionsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Alarm Configuration Modal */}
+            {showAlarmConfig && (
+                <div className={styles.modalOverlay} onClick={() => setShowAlarmConfig(false)}>
+                    <div className={styles.alarmModal} onClick={e => e.stopPropagation()}>
+                        <h3>🔔 Configurer l'alarme spread sortie</h3>
+                        <p>L'alarme sonnera quand le spread de sortie atteint ce seuil</p>
+                        <div className={styles.alarmInputGroup}>
+                            <span className={styles.alarmInputPrefix}>%</span>
+                            <input
+                                type="number"
+                                step="0.01"
+                                placeholder="-0.05"
+                                value={alarmThresholdInput}
+                                onChange={(e) => setAlarmThresholdInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSaveAlarm()}
+                                autoFocus
+                            />
+                        </div>
+                        <div className={styles.alarmModalButtons}>
+                            <button className={styles.alarmCancelBtn} onClick={() => setShowAlarmConfig(false)}>
+                                Annuler
+                            </button>
+                            <button className={styles.alarmSaveBtn} onClick={handleSaveAlarm}>
+                                Activer l'alarme
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
