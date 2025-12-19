@@ -207,6 +207,7 @@ export default function PositionsPage() {
                     <nav className={styles.nav}>
                         <a href="/" className={styles.navLinkInactive}>Dashboard</a>
                         <a href="/positions" className={styles.navLink}>Positions</a>
+                        <a href="/metrics" className={styles.navLinkInactive}>Metrics</a>
                     </nav>
 
                     <div className={styles.headerRight}>
