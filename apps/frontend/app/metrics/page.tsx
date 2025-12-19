@@ -2,31 +2,44 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSocket } from '@/hooks/useSocket';
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    Legend,
+    ReferenceLine,
+} from 'recharts';
+import { Sidebar } from '@/components/Sidebar';
 import styles from './metrics.module.css';
 
-const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado'];
-
-interface SpreadDataPoint {
-    timestamp: string;
-    spreadAtoB: number;
-    spreadBtoA: number;
+interface DualSpreadData {
+    time: string;
+    formattedTime: string;
+    spreadAB: number | null;
+    spreadBA: number | null;
 }
 
 export default function MetricsPage() {
     const { prices, exchanges, isConnected } = useSocket();
 
     // State
-    const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(new Set(EXCHANGES));
-    const [tokenSearch, setTokenSearch] = useState('');
+    const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedToken, setSelectedToken] = useState('');
-    const [exchangeA, setExchangeA] = useState('');
-    const [exchangeB, setExchangeB] = useState('');
     const [showTokenDropdown, setShowTokenDropdown] = useState(false);
-    const [spreadHistory, setSpreadHistory] = useState<SpreadDataPoint[]>([]);
+    const [spreadData, setSpreadData] = useState<DualSpreadData[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [range, setRange] = useState('24H');
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [range, setRange] = useState('7D');
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Get selected exchanges as array (max 2)
+    const selectedArray = useMemo(() => Array.from(selectedExchanges), [selectedExchanges]);
+    const exchangeA = selectedArray[0] || '';
+    const exchangeB = selectedArray[1] || '';
 
     // Get available symbols
     const symbols = useMemo(() => {
@@ -35,33 +48,43 @@ export default function MetricsPage() {
 
     // Filter symbols based on search
     const filteredSymbols = useMemo(() => {
-        if (!tokenSearch) return symbols;
-        const search = tokenSearch.toLowerCase();
+        if (!searchQuery) return symbols;
+        const search = searchQuery.toLowerCase();
         return symbols.filter(s =>
             s.toLowerCase().includes(search) ||
             s.replace('-USD', '').toLowerCase().includes(search)
         );
-    }, [symbols, tokenSearch]);
+    }, [symbols, searchQuery]);
 
-    // Get exchanges that have data for selected token
-    const availableExchanges = useMemo(() => {
-        if (!selectedToken) return Array.from(selectedExchanges);
-        const symbolPrices = prices.get(selectedToken);
-        if (!symbolPrices) return Array.from(selectedExchanges);
-        return Array.from(symbolPrices.keys()).filter(ex => selectedExchanges.has(ex)).sort();
-    }, [selectedToken, prices, selectedExchanges]);
+    // Handle exchange toggle - limit to 2
+    const handleExchangeToggle = (exchangeId: string) => {
+        setSelectedExchanges(prev => {
+            const next = new Set(prev);
+            if (next.has(exchangeId)) {
+                next.delete(exchangeId);
+            } else {
+                // Limit to 2 exchanges
+                if (next.size >= 2) {
+                    // Remove the oldest one
+                    const arr = Array.from(next);
+                    next.delete(arr[0]);
+                }
+                next.add(exchangeId);
+            }
+            return next;
+        });
+    };
 
-    // Fetch spread history when parameters change
+    // Fetch spread history when we have token and 2 exchanges
     useEffect(() => {
         if (!selectedToken || !exchangeA || !exchangeB) {
-            setSpreadHistory([]);
+            setSpreadData([]);
             return;
         }
 
         const fetchHistory = async () => {
             setIsLoading(true);
             try {
-                // Fetch both directions
                 const [responseAB, responseBA] = await Promise.all([
                     fetch(`/api/spread-history?symbol=${selectedToken}&buyExchange=${exchangeA}&sellExchange=${exchangeB}&range=${range}`),
                     fetch(`/api/spread-history?symbol=${selectedToken}&buyExchange=${exchangeB}&sellExchange=${exchangeA}&range=${range}`)
@@ -70,43 +93,43 @@ export default function MetricsPage() {
                 const dataAB = await responseAB.json();
                 const dataBA = await responseBA.json();
 
-                // Combine data points by timestamp
-                const combined: SpreadDataPoint[] = [];
-                const abData = dataAB.data || [];
-                const baData = dataBA.data || [];
+                // Combine by timestamp
+                const timestampMap = new Map<string, DualSpreadData>();
 
-                // Create a map of timestamps
-                const timestampMap = new Map<string, SpreadDataPoint>();
-
-                for (const point of abData) {
-                    timestampMap.set(point.timestamp, {
-                        timestamp: point.timestamp,
-                        spreadAtoB: point.spread,
-                        spreadBtoA: 0
+                for (const point of (dataAB.data || [])) {
+                    timestampMap.set(point.time, {
+                        time: point.time,
+                        formattedTime: new Date(point.time).toLocaleString('fr-FR', {
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        }),
+                        spreadAB: point.spread,
+                        spreadBA: null
                     });
                 }
 
-                for (const point of baData) {
-                    const existing = timestampMap.get(point.timestamp);
+                for (const point of (dataBA.data || [])) {
+                    const existing = timestampMap.get(point.time);
                     if (existing) {
-                        existing.spreadBtoA = point.spread;
+                        existing.spreadBA = point.spread;
                     } else {
-                        timestampMap.set(point.timestamp, {
-                            timestamp: point.timestamp,
-                            spreadAtoB: 0,
-                            spreadBtoA: point.spread
+                        timestampMap.set(point.time, {
+                            time: point.time,
+                            formattedTime: new Date(point.time).toLocaleString('fr-FR', {
+                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            }),
+                            spreadAB: null,
+                            spreadBA: point.spread
                         });
                     }
                 }
 
-                // Sort by timestamp
                 const sorted = Array.from(timestampMap.values())
-                    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-                setSpreadHistory(sorted);
+                setSpreadData(sorted);
             } catch (error) {
                 console.error('Error fetching spread history:', error);
-                setSpreadHistory([]);
+                setSpreadData([]);
             }
             setIsLoading(false);
         };
@@ -127,92 +150,24 @@ export default function MetricsPage() {
 
     const handleSelectToken = (s: string) => {
         setSelectedToken(s);
-        setTokenSearch(s.replace('-USD', ''));
+        setSearchQuery(s.replace('-USD', ''));
         setShowTokenDropdown(false);
-        setExchangeA('');
-        setExchangeB('');
     };
-
-    const handleExchangeToggle = (exchangeId: string) => {
-        setSelectedExchanges(prev => {
-            const next = new Set(prev);
-            if (next.has(exchangeId)) {
-                next.delete(exchangeId);
-            } else {
-                next.add(exchangeId);
-            }
-            return next;
-        });
-    };
-
-    // Calculate chart dimensions
-    const chartWidth = 800;
-    const chartHeight = 300;
-    const padding = { top: 20, right: 60, bottom: 40, left: 60 };
-
-    // Generate SVG path for spread data
-    const generatePath = (data: SpreadDataPoint[], key: 'spreadAtoB' | 'spreadBtoA') => {
-        if (data.length === 0) return '';
-
-        const values = data.map(d => d[key]);
-        const minVal = Math.min(...values, 0);
-        const maxVal = Math.max(...values);
-        const range = maxVal - minVal || 1;
-
-        const xScale = (chartWidth - padding.left - padding.right) / (data.length - 1 || 1);
-        const yScale = (chartHeight - padding.top - padding.bottom) / range;
-
-        return data.map((d, i) => {
-            const x = padding.left + i * xScale;
-            const y = chartHeight - padding.bottom - (d[key] - minVal) * yScale;
-            return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-        }).join(' ');
-    };
-
-    // Get min/max for Y axis
-    const yAxisRange = useMemo(() => {
-        if (spreadHistory.length === 0) return { min: -1, max: 1 };
-        const allValues = spreadHistory.flatMap(d => [d.spreadAtoB, d.spreadBtoA]);
-        return {
-            min: Math.min(...allValues, 0),
-            max: Math.max(...allValues)
-        };
-    }, [spreadHistory]);
 
     return (
         <div className={styles.layout}>
-            {/* Sidebar */}
-            <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ''}`}>
-                <button
-                    className={styles.collapseBtn}
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                >
-                    {sidebarCollapsed ? '»' : '«'}
-                </button>
-
-                {!sidebarCollapsed && (
-                    <>
-                        <div className={styles.section}>
-                            <h3 className={styles.sectionTitle}>EXCHANGES</h3>
-                            <ul className={styles.exchangeList}>
-                                {EXCHANGES.map(ex => (
-                                    <li key={ex} className={styles.exchangeItem}>
-                                        <label className={styles.exchangeLabel}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedExchanges.has(ex)}
-                                                onChange={() => handleExchangeToggle(ex)}
-                                            />
-                                            <span className={`${styles.statusDot} ${exchanges.some(e => e.id === ex && e.connected) ? styles.online : styles.offline}`} />
-                                            <span>{ex.toUpperCase()}</span>
-                                        </label>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </>
-                )}
-            </aside>
+            {/* Reuse Sidebar */}
+            <Sidebar
+                exchanges={exchanges}
+                selectedExchanges={selectedExchanges}
+                onExchangeToggle={handleExchangeToggle}
+                searchQuery=""
+                onSearchChange={() => { }}
+                favorites={new Set()}
+                onFavoriteToggle={() => { }}
+                showFavoritesOnly={false}
+                onShowFavoritesToggle={() => { }}
+            />
 
             {/* Main Content */}
             <main className={styles.main}>
@@ -233,16 +188,15 @@ export default function MetricsPage() {
                     </div>
                 </header>
 
-                {/* Controls */}
+                {/* Controls - just token search and range */}
                 <div className={styles.controls}>
-                    {/* Token Search */}
                     <div className={styles.field} ref={dropdownRef}>
                         <label>Token</label>
                         <input
                             type="text"
-                            value={tokenSearch}
+                            value={searchQuery}
                             onChange={e => {
-                                setTokenSearch(e.target.value);
+                                setSearchQuery(e.target.value);
                                 setShowTokenDropdown(true);
                                 if (!e.target.value) setSelectedToken('');
                             }}
@@ -268,37 +222,6 @@ export default function MetricsPage() {
                         )}
                     </div>
 
-                    {/* Exchange A */}
-                    <div className={styles.field}>
-                        <label>Exchange A</label>
-                        <select
-                            value={exchangeA}
-                            onChange={e => setExchangeA(e.target.value)}
-                            disabled={!selectedToken}
-                        >
-                            <option value="">Select...</option>
-                            {availableExchanges.filter(ex => ex !== exchangeB).map(ex => (
-                                <option key={ex} value={ex}>{ex}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Exchange B */}
-                    <div className={styles.field}>
-                        <label>Exchange B</label>
-                        <select
-                            value={exchangeB}
-                            onChange={e => setExchangeB(e.target.value)}
-                            disabled={!selectedToken}
-                        >
-                            <option value="">Select...</option>
-                            {availableExchanges.filter(ex => ex !== exchangeA).map(ex => (
-                                <option key={ex} value={ex}>{ex}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Range */}
                     <div className={styles.field}>
                         <label>Range</label>
                         <select value={range} onChange={e => setRange(e.target.value)}>
@@ -308,74 +231,82 @@ export default function MetricsPage() {
                             <option value="ALL">All</option>
                         </select>
                     </div>
+
+                    {/* Info about selected exchanges */}
+                    <div className={styles.info}>
+                        {selectedArray.length < 2 ? (
+                            <span className={styles.hint}>← Sélectionne 2 exchanges dans la sidebar</span>
+                        ) : (
+                            <span className={styles.selected}>
+                                {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Chart */}
                 <div className={styles.chartContainer}>
-                    {!selectedToken || !exchangeA || !exchangeB ? (
+                    {selectedArray.length < 2 ? (
                         <div className={styles.placeholder}>
-                            Select a token and two exchanges to view spread history
+                            Sélectionne exactement 2 exchanges dans la sidebar
+                        </div>
+                    ) : !selectedToken ? (
+                        <div className={styles.placeholder}>
+                            Sélectionne un token pour voir le graphique
                         </div>
                     ) : isLoading ? (
-                        <div className={styles.loading}>Loading spread data...</div>
-                    ) : spreadHistory.length === 0 ? (
-                        <div className={styles.placeholder}>No historical data available</div>
+                        <div className={styles.loading}>Chargement...</div>
+                    ) : spreadData.length === 0 ? (
+                        <div className={styles.placeholder}>Pas de données historiques</div>
                     ) : (
                         <>
                             <div className={styles.chartTitle}>
-                                {selectedToken.replace('-USD', '')} Spread: {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
+                                {selectedToken.replace('-USD', '')}: {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
                             </div>
-                            <div className={styles.legend}>
-                                <span className={styles.legendItem}>
-                                    <span className={styles.legendColorA}></span>
-                                    Long {exchangeA} / Short {exchangeB}
-                                </span>
-                                <span className={styles.legendItem}>
-                                    <span className={styles.legendColorB}></span>
-                                    Long {exchangeB} / Short {exchangeA}
-                                </span>
-                            </div>
-                            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className={styles.chart}>
-                                {/* Grid lines */}
-                                <line x1={padding.left} y1={padding.top} x2={padding.left} y2={chartHeight - padding.bottom} stroke="#333" />
-                                <line x1={padding.left} y1={chartHeight - padding.bottom} x2={chartWidth - padding.right} y2={chartHeight - padding.bottom} stroke="#333" />
-
-                                {/* Zero line */}
-                                {yAxisRange.min < 0 && (
-                                    <line
-                                        x1={padding.left}
-                                        y1={chartHeight - padding.bottom - (-yAxisRange.min) / (yAxisRange.max - yAxisRange.min) * (chartHeight - padding.top - padding.bottom)}
-                                        x2={chartWidth - padding.right}
-                                        y2={chartHeight - padding.bottom - (-yAxisRange.min) / (yAxisRange.max - yAxisRange.min) * (chartHeight - padding.top - padding.bottom)}
-                                        stroke="#555"
-                                        strokeDasharray="4 4"
+                            <ResponsiveContainer width="100%" height={400}>
+                                <LineChart data={spreadData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                    <XAxis
+                                        dataKey="formattedTime"
+                                        stroke="#666"
+                                        tick={{ fill: '#888', fontSize: 11 }}
+                                        interval="preserveStartEnd"
                                     />
-                                )}
-
-                                {/* Y axis labels */}
-                                <text x={padding.left - 10} y={padding.top + 10} fill="#888" fontSize="12" textAnchor="end">
-                                    {yAxisRange.max.toFixed(2)}%
-                                </text>
-                                <text x={padding.left - 10} y={chartHeight - padding.bottom} fill="#888" fontSize="12" textAnchor="end">
-                                    {yAxisRange.min.toFixed(2)}%
-                                </text>
-
-                                {/* Spread A→B line */}
-                                <path
-                                    d={generatePath(spreadHistory, 'spreadAtoB')}
-                                    fill="none"
-                                    stroke="#22c55e"
-                                    strokeWidth="2"
-                                />
-
-                                {/* Spread B→A line */}
-                                <path
-                                    d={generatePath(spreadHistory, 'spreadBtoA')}
-                                    fill="none"
-                                    stroke="#f59e0b"
-                                    strokeWidth="2"
-                                />
-                            </svg>
+                                    <YAxis
+                                        stroke="#666"
+                                        tick={{ fill: '#888', fontSize: 11 }}
+                                        tickFormatter={(v) => `${v.toFixed(2)}%`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#1a1d26',
+                                            border: '1px solid #333',
+                                            borderRadius: '8px'
+                                        }}
+                                        labelStyle={{ color: '#888' }}
+                                    />
+                                    <Legend />
+                                    <ReferenceLine y={0} stroke="#555" strokeDasharray="4 4" />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="spreadAB"
+                                        name={`Long ${exchangeA} / Short ${exchangeB}`}
+                                        stroke="#22c55e"
+                                        strokeWidth={2}
+                                        dot={false}
+                                        connectNulls
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="spreadBA"
+                                        name={`Long ${exchangeB} / Short ${exchangeA}`}
+                                        stroke="#f59e0b"
+                                        strokeWidth={2}
+                                        dot={false}
+                                        connectNulls
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </>
                     )}
                 </div>

@@ -4,85 +4,6 @@
     background: var(--background);
 }
 
-/* Sidebar */
-.sidebar {
-    width: 220px;
-    background: var(--card);
-    border-right: 1px solid var(--border);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    transition: width 0.2s;
-    position: relative;
-}
-
-.sidebar.collapsed {
-    width: 48px;
-    padding: 1rem 0.5rem;
-}
-
-.collapseBtn {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: transparent;
-    border: none;
-    color: #71717a;
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 0.25rem;
-}
-
-.section {
-    margin-top: 1rem;
-}
-
-.sectionTitle {
-    font-size: 0.75rem;
-    color: #71717a;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-}
-
-.exchangeList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.exchangeItem {
-    margin-bottom: 0.5rem;
-}
-
-.exchangeLabel {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.8125rem;
-    color: #d4d4d8;
-}
-
-.exchangeLabel input {
-    accent-color: #6366f1;
-}
-
-.statusDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #71717a;
-}
-
-.statusDot.online {
-    background: #22c55e;
-}
-
-.statusDot.offline {
-    background: #ef4444;
-}
-
 /* Main */
 .main {
     flex: 1;
@@ -153,11 +74,11 @@
 /* Controls */
 .controls {
     display: flex;
-    gap: 1rem;
-    padding: 1.5rem;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
     background: rgba(255, 255, 255, 0.02);
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
+    align-items: flex-end;
 }
 
 .field {
@@ -229,7 +150,23 @@
 .dropdownEmpty {
     padding: 0.5rem 0.75rem;
     color: #71717a;
+}
+
+.info {
+    display: flex;
+    align-items: center;
+    padding-bottom: 0.5rem;
+}
+
+.hint {
+    color: #f59e0b;
     font-size: 0.8125rem;
+}
+
+.selected {
+    color: #22c55e;
+    font-size: 0.9375rem;
+    font-weight: 600;
 }
 
 /* Chart */
@@ -258,10 +195,10 @@
 }
 
 .chartTitle {
-    font-size: 1rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: #f1f1f1;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
 
 .legend {
