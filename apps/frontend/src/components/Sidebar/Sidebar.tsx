@@ -35,13 +35,13 @@ export function Sidebar({
 
     return (
         <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
-            {/* Collapse Toggle */}
+            {/* Collapse Button */}
             <button
                 className={styles.collapseBtn}
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 title={isCollapsed ? 'Expand' : 'Collapse'}
             >
-                {isCollapsed ? '»' : '«'}
+                <span className={styles.collapseIcon}>{isCollapsed ? '▸' : '◂'}</span>
             </button>
 
             {!isCollapsed && (
@@ -58,54 +58,40 @@ export function Sidebar({
                     </div>
 
                     {/* Favorites */}
-                    <div className={styles.section}>
-                        <button
-                            className={`${styles.favoritesBtn} ${showFavoritesOnly ? styles.active : ''}`}
-                            onClick={onShowFavoritesToggle}
-                        >
-                            <span className={styles.starIcon}>★</span>
-                            Favorites
-                            {favorites.size > 0 && (
-                                <span className={styles.count}>({favorites.size})</span>
-                            )}
-                        </button>
-                    </div>
+                    <button
+                        className={`${styles.favoritesBtn} ${showFavoritesOnly ? styles.active : ''}`}
+                        onClick={onShowFavoritesToggle}
+                    >
+                        <span className={styles.starIcon}>★</span>
+                        <span className={styles.favoritesText}>Favorites</span>
+                    </button>
 
                     {/* Exchanges */}
-                    <div className={styles.section}>
-                        <h3 className={styles.sectionTitle}>EXCHANGES</h3>
-                        <ul className={styles.exchangeList}>
+                    <div className={styles.exchangesSection}>
+                        <span className={styles.sectionTitle}>EXCHANGES</span>
+                        <div className={styles.exchangeList}>
                             {exchanges.map((exchange) => (
-                                <li key={exchange.id} className={styles.exchangeItem}>
-                                    <label className={styles.exchangeLabel}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedExchanges.has(exchange.id)}
-                                            onChange={() => onExchangeToggle(exchange.id)}
-                                            className={styles.checkbox}
-                                        />
-                                        <span
-                                            className={`${styles.statusDot} ${exchange.connected ? styles.online : styles.offline
-                                                }`}
-                                        />
-                                        <Image
-                                            src={`/assets/logos/${exchange.id}.png`}
-                                            alt={exchange.id}
-                                            width={20}
-                                            height={20}
-                                            className={styles.exchangeLogo}
-                                            onError={(e) => {
-                                                // Hide if logo doesn't exist
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                        />
-                                        <span className={styles.exchangeName}>
-                                            {exchange.id.toUpperCase()}
-                                        </span>
-                                    </label>
-                                </li>
+                                <button
+                                    key={exchange.id}
+                                    className={`${styles.exchangeBtn} ${selectedExchanges.has(exchange.id) ? styles.selected : ''}`}
+                                    onClick={() => onExchangeToggle(exchange.id)}
+                                >
+                                    <Image
+                                        src={`/assets/logos/${exchange.id}.png`}
+                                        alt={exchange.id}
+                                        width={24}
+                                        height={24}
+                                        className={styles.exchangeLogo}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.opacity = '0.3';
+                                        }}
+                                    />
+                                    <span className={styles.exchangeName}>
+                                        {exchange.id.toUpperCase()}
+                                    </span>
+                                </button>
                             ))}
-                        </ul>
+                        </div>
                     </div>
                 </>
             )}
