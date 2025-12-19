@@ -20,19 +20,7 @@ export function AlertNotification({ triggers, onDismiss }: AlertNotificationProp
         }
     }, [triggers, visible]);
 
-    // Auto-dismiss after 15 seconds
-    useEffect(() => {
-        if (visible.length === 0) return;
-
-        const timers = visible.map(id =>
-            setTimeout(() => {
-                setVisible(prev => prev.filter(v => v !== id));
-                onDismiss(id);
-            }, 15000)
-        );
-
-        return () => timers.forEach(clearTimeout);
-    }, [visible, onDismiss]);
+    // No auto-dismiss - user must manually close to stop the sound
 
     const handleDismiss = (alertId: string) => {
         setVisible(prev => prev.filter(id => id !== alertId));
