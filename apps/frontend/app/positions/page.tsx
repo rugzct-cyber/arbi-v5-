@@ -166,7 +166,7 @@ export default function PositionsPage() {
         }
     }, [exitSpreadData, selectedPosition]);
 
-    // Play profit alarm sound
+    // Play profit alarm sound - LOUD with repetitions
     const playAlarmSound = useCallback(() => {
         try {
             if (!audioContextRef.current) {
@@ -174,22 +174,29 @@ export default function PositionsPage() {
             }
             const ctx = audioContextRef.current;
 
-            // Create a more distinctive profit sound: ascending notes
-            const notes = [523, 659, 784]; // C5, E5, G5 - major chord
-            notes.forEach((freq, i) => {
-                setTimeout(() => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.frequency.value = freq;
-                    osc.type = 'sine';
-                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                    osc.start(ctx.currentTime);
-                    osc.stop(ctx.currentTime + 0.2);
-                }, i * 120);
-            });
+            // Play the alarm pattern 3 times for emphasis
+            const playPattern = (delay: number) => {
+                const notes = [523, 659, 784, 1046]; // C5, E5, G5, C6 - major chord + octave
+                notes.forEach((freq, i) => {
+                    setTimeout(() => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'square'; // More aggressive sound
+                        gain.gain.setValueAtTime(0.6, ctx.currentTime); // Louder!
+                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                        osc.start(ctx.currentTime);
+                        osc.stop(ctx.currentTime + 0.3);
+                    }, delay + i * 100);
+                });
+            };
+
+            // 3 repetitions with gaps
+            playPattern(0);
+            playPattern(600);
+            playPattern(1200);
         } catch (e) {
             console.log('Audio not available:', e);
         }
