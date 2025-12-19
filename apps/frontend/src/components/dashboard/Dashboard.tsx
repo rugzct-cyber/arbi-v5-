@@ -127,6 +127,7 @@ export function Dashboard({
                         <nav className={styles.nav}>
                             <a href="/" className={styles.navLink}>Dashboard</a>
                             <a href="/positions" className={styles.navLinkInactive}>Positions</a>
+                            <a href="/metrics" className={styles.navLinkInactive}>Metrics</a>
                         </nav>
 
                         <div className={styles.headerRight}>
