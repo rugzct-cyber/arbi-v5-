@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    gap: 2rem;
+    position: relative;
 }
 
 .title {
@@ -22,6 +22,7 @@
     font-weight: 700;
     margin: 0;
     color: var(--foreground);
+    flex-shrink: 0;
 }
 
 .logo {
@@ -29,6 +30,9 @@
 }
 
 .nav {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     gap: 1.5rem;
 }
