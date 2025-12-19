@@ -152,21 +152,63 @@
     color: #71717a;
 }
 
+/* Range Buttons */
+.rangeButtons {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 0.25rem;
+}
+
+.rangeBtn {
+    background: transparent;
+    border: none;
+    color: #71717a;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.rangeBtn:hover {
+    color: #d4d4d8;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rangeBtn.active {
+    background: #6366f1;
+    color: white;
+}
+
+/* Info Section */
 .info {
     display: flex;
     align-items: center;
-    padding-bottom: 0.5rem;
+    gap: 1rem;
+    margin-left: auto;
+}
+
+.tokenBadge {
+    background: rgba(99, 102, 241, 0.2);
+    color: #a5b4fc;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.exchangeInfo {
+    color: #22c55e;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 .hint {
     color: #f59e0b;
     font-size: 0.8125rem;
-}
-
-.selected {
-    color: #22c55e;
-    font-size: 0.9375rem;
-    font-weight: 600;
 }
 
 /* Chart */

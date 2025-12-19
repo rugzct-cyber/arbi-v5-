@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import {
     LineChart,
@@ -23,6 +23,8 @@ interface DualSpreadData {
     spreadBA: number | null;
 }
 
+type TimeRange = '24H' | '7D' | '30D' | 'ALL';
+
 export default function MetricsPage() {
     const { prices, exchanges, isConnected } = useSocket();
 
@@ -30,31 +32,35 @@ export default function MetricsPage() {
     const [selectedExchanges, setSelectedExchanges] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedToken, setSelectedToken] = useState('');
-    const [showTokenDropdown, setShowTokenDropdown] = useState(false);
     const [spreadData, setSpreadData] = useState<DualSpreadData[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [range, setRange] = useState('7D');
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [range, setRange] = useState<TimeRange>('7D');
 
     // Get selected exchanges as array (max 2)
     const selectedArray = useMemo(() => Array.from(selectedExchanges), [selectedExchanges]);
     const exchangeA = selectedArray[0] || '';
     const exchangeB = selectedArray[1] || '';
 
-    // Get available symbols
-    const symbols = useMemo(() => {
-        return Array.from(prices.keys()).sort();
-    }, [prices]);
-
-    // Filter symbols based on search
+    // Get available symbols filtered by search
     const filteredSymbols = useMemo(() => {
+        const symbols = Array.from(prices.keys()).sort();
         if (!searchQuery) return symbols;
         const search = searchQuery.toLowerCase();
         return symbols.filter(s =>
             s.toLowerCase().includes(search) ||
             s.replace('-USD', '').toLowerCase().includes(search)
         );
-    }, [symbols, searchQuery]);
+    }, [prices, searchQuery]);
+
+    // Auto-select first filtered symbol when search changes
+    useEffect(() => {
+        if (filteredSymbols.length > 0 && searchQuery) {
+            // Check if selectedToken is in filtered list
+            if (!filteredSymbols.includes(selectedToken)) {
+                setSelectedToken(filteredSymbols[0]);
+            }
+        }
+    }, [filteredSymbols, searchQuery, selectedToken]);
 
     // Handle exchange toggle - limit to 2
     const handleExchangeToggle = (exchangeId: string) => {
@@ -63,9 +69,7 @@ export default function MetricsPage() {
             if (next.has(exchangeId)) {
                 next.delete(exchangeId);
             } else {
-                // Limit to 2 exchanges
                 if (next.size >= 2) {
-                    // Remove the oldest one
                     const arr = Array.from(next);
                     next.delete(arr[0]);
                 }
@@ -75,7 +79,7 @@ export default function MetricsPage() {
         });
     };
 
-    // Fetch spread history when we have token and 2 exchanges
+    // Fetch spread history
     useEffect(() => {
         if (!selectedToken || !exchangeA || !exchangeB) {
             setSpreadData([]);
@@ -93,7 +97,6 @@ export default function MetricsPage() {
                 const dataAB = await responseAB.json();
                 const dataBA = await responseBA.json();
 
-                // Combine by timestamp
                 const timestampMap = new Map<string, DualSpreadData>();
 
                 for (const point of (dataAB.data || [])) {
@@ -137,32 +140,27 @@ export default function MetricsPage() {
         fetchHistory();
     }, [selectedToken, exchangeA, exchangeB, range]);
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setShowTokenDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleSelectToken = (s: string) => {
-        setSelectedToken(s);
-        setSearchQuery(s.replace('-USD', ''));
-        setShowTokenDropdown(false);
-    };
-
     return (
         <div className={styles.layout}>
-            {/* Reuse Sidebar */}
+            {/* Sidebar with token search */}
             <Sidebar
                 exchanges={exchanges}
                 selectedExchanges={selectedExchanges}
                 onExchangeToggle={handleExchangeToggle}
-                searchQuery=""
-                onSearchChange={() => { }}
+                searchQuery={searchQuery}
+                onSearchChange={(q) => {
+                    setSearchQuery(q);
+                    // Auto-select first match
+                    const symbols = Array.from(prices.keys());
+                    const search = q.toLowerCase();
+                    const matches = symbols.filter(s =>
+                        s.toLowerCase().includes(search) ||
+                        s.replace('-USD', '').toLowerCase().includes(search)
+                    );
+                    if (matches.length > 0) {
+                        setSelectedToken(matches[0]);
+                    }
+                }}
                 favorites={new Set()}
                 onFavoriteToggle={() => { }}
                 showFavoritesOnly={false}
@@ -188,58 +186,35 @@ export default function MetricsPage() {
                     </div>
                 </header>
 
-                {/* Controls - just token search and range */}
+                {/* Controls - Range buttons and info */}
                 <div className={styles.controls}>
-                    <div className={styles.field} ref={dropdownRef}>
-                        <label>Token</label>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={e => {
-                                setSearchQuery(e.target.value);
-                                setShowTokenDropdown(true);
-                                if (!e.target.value) setSelectedToken('');
-                            }}
-                            onFocus={() => setShowTokenDropdown(true)}
-                            placeholder="Search token..."
-                        />
-                        {showTokenDropdown && (
-                            <div className={styles.dropdown}>
-                                {filteredSymbols.length === 0 ? (
-                                    <div className={styles.dropdownEmpty}>No tokens found</div>
-                                ) : (
-                                    filteredSymbols.slice(0, 10).map(s => (
-                                        <div
-                                            key={s}
-                                            className={`${styles.dropdownItem} ${selectedToken === s ? styles.selected : ''}`}
-                                            onClick={() => handleSelectToken(s)}
-                                        >
-                                            {s.replace('-USD', '')}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
+                    {/* Range buttons */}
+                    <div className={styles.rangeButtons}>
+                        {(['24H', '7D', '30D', 'ALL'] as TimeRange[]).map(r => (
+                            <button
+                                key={r}
+                                className={`${styles.rangeBtn} ${range === r ? styles.active : ''}`}
+                                onClick={() => setRange(r)}
+                            >
+                                {r}
+                            </button>
+                        ))}
                     </div>
 
-                    <div className={styles.field}>
-                        <label>Range</label>
-                        <select value={range} onChange={e => setRange(e.target.value)}>
-                            <option value="24H">24H</option>
-                            <option value="7D">7 Days</option>
-                            <option value="30D">30 Days</option>
-                            <option value="ALL">All</option>
-                        </select>
-                    </div>
-
-                    {/* Info about selected exchanges */}
+                    {/* Info about selection */}
                     <div className={styles.info}>
-                        {selectedArray.length < 2 ? (
-                            <span className={styles.hint}>← Sélectionne 2 exchanges dans la sidebar</span>
-                        ) : (
-                            <span className={styles.selected}>
+                        {selectedToken && (
+                            <span className={styles.tokenBadge}>
+                                {selectedToken.replace('-USD', '')}
+                            </span>
+                        )}
+                        {selectedArray.length === 2 && (
+                            <span className={styles.exchangeInfo}>
                                 {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
                             </span>
+                        )}
+                        {selectedArray.length < 2 && (
+                            <span className={styles.hint}>← Sélectionne 2 exchanges</span>
                         )}
                     </div>
                 </div>
@@ -252,7 +227,7 @@ export default function MetricsPage() {
                         </div>
                     ) : !selectedToken ? (
                         <div className={styles.placeholder}>
-                            Sélectionne un token pour voir le graphique
+                            Recherche un token dans la sidebar
                         </div>
                     ) : isLoading ? (
                         <div className={styles.loading}>Chargement...</div>
