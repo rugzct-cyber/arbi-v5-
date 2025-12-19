@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { ExitSpreadChart } from '@/components/ExitSpreadChart/ExitSpreadChart';
+import { Header } from '@/components/Header';
 import styles from './positions.module.css';
 
 interface Position {
@@ -196,46 +197,17 @@ export default function PositionsPage() {
 
     return (
         <div className={styles.container}>
-            {/* Header - Same as Dashboard */}
-            <header className={styles.header}>
-                <div className={styles.headerContent}>
-                    <h1 className={styles.title}>
-                        <span className={styles.logo}>📊</span>
-                        Position Manager
-                    </h1>
-
-                    <nav className={styles.nav}>
-                        <a href="/" className={styles.navLinkInactive}>Dashboard</a>
-                        <a href="/positions" className={styles.navLink}>Positions</a>
-                        <a href="/metrics" className={styles.navLinkInactive}>Metrics</a>
-                    </nav>
-
-                    <div className={styles.headerRight}>
-                        <div className={styles.refreshSection}>
-                            <select
-                                className={styles.refreshSelect}
-                                value={refreshInterval}
-                                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                            >
-                                {REFRESH_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                            <span className={styles.lastRefresh} suppressHydrationWarning>
-                                Updated: {lastRefresh.toLocaleTimeString()}
-                            </span>
-                            <button className={styles.refreshBtn} onClick={refreshPrices}>
-                                Refresh
-                            </button>
-                        </div>
-
-                        <div className={styles.status}>
-                            <span className={`${styles.statusDot} ${isConnected ? styles.connected : styles.disconnected}`} />
-                            {isConnected ? 'Connected' : 'Disconnected'}
-                        </div>
-                    </div>
-                </div>
-            </header>
+            {/* Header */}
+            <Header
+                activePage="positions"
+                isConnected={isConnected}
+                refreshOptions={{
+                    refreshInterval,
+                    onRefreshIntervalChange: setRefreshInterval,
+                    lastRefresh,
+                    onRefresh: refreshPrices
+                }}
+            />
 
             <div className={styles.content}>
                 {/* Left: Position List & Form */}

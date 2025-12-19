@@ -14,6 +14,7 @@ import {
     ReferenceLine,
 } from 'recharts';
 import { Sidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
 import styles from './metrics.module.css';
 
 interface DualSpreadData {
@@ -170,21 +171,10 @@ export default function MetricsPage() {
             {/* Main Content */}
             <main className={styles.main}>
                 {/* Header */}
-                <header className={styles.header}>
-                    <h1 className={styles.title}>
-                        <span className={styles.logo}>📊</span>
-                        Metrics
-                    </h1>
-                    <nav className={styles.nav}>
-                        <a href="/" className={styles.navLinkInactive}>Dashboard</a>
-                        <a href="/positions" className={styles.navLinkInactive}>Positions</a>
-                        <a href="/metrics" className={styles.navLink}>Metrics</a>
-                    </nav>
-                    <div className={styles.status}>
-                        <span className={`${styles.statusIndicator} ${isConnected ? styles.connected : ''}`} />
-                        {isConnected ? 'Connected' : 'Disconnected'}
-                    </div>
-                </header>
+                <Header
+                    activePage="metrics"
+                    isConnected={isConnected}
+                />
 
                 {/* Controls - Range buttons and info */}
                 <div className={styles.controls}>

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { PriceUpdate, ArbitrageOpportunity } from '@arbitrage/shared';
 import { Sidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
 import { PriceTable } from './PriceTable';
 import styles from './Dashboard.module.css';
 
@@ -24,14 +25,6 @@ interface DashboardProps {
     alertCount?: number;
     onOpenAlerts?: () => void;
 }
-
-const REFRESH_OPTIONS = [
-    { label: 'Instant', value: 0 },
-    { label: '5s', value: 5000 },
-    { label: '15s', value: 15000 },
-    { label: '30s', value: 30000 },
-    { label: '1min', value: 60000 },
-];
 
 export function Dashboard({
     isConnected,
@@ -117,58 +110,20 @@ export function Dashboard({
 
             <div className={styles.mainContent}>
                 {/* Header */}
-                <header className={styles.header}>
-                    <div className={styles.headerContent}>
-                        <h1 className={styles.title}>
-                            <span className={styles.logo}>📈</span>
-                            Arbitrage Dashboard
-                        </h1>
-
-                        <nav className={styles.nav}>
-                            <a href="/" className={styles.navLink}>Dashboard</a>
-                            <a href="/positions" className={styles.navLinkInactive}>Positions</a>
-                            <a href="/metrics" className={styles.navLinkInactive}>Metrics</a>
-                        </nav>
-
-                        <div className={styles.headerRight}>
-                            <div className={styles.refreshSection}>
-                                <select
-                                    className={styles.refreshSelect}
-                                    value={refreshInterval}
-                                    onChange={(e) => onRefreshIntervalChange(Number(e.target.value))}
-                                >
-                                    {REFRESH_OPTIONS.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
-                                <span className={styles.lastRefresh} suppressHydrationWarning>
-                                    Updated: {lastRefresh.toLocaleTimeString()}
-                                </span>
-                                <button className={styles.refreshBtn} onClick={onRefresh}>
-                                    Refresh
-                                </button>
-                            </div>
-
-                            {/* Alert Button */}
-                            {onOpenAlerts && (
-                                <button
-                                    className={styles.alertBtn}
-                                    onClick={onOpenAlerts}
-                                >
-                                    🔔
-                                    {alertCount > 0 && (
-                                        <span className={styles.alertBadge}>{alertCount}</span>
-                                    )}
-                                </button>
-                            )}
-
-                            <div className={styles.status}>
-                                <span className={`status-dot ${isConnected ? 'status-connected' : 'status-disconnected'}`} />
-                                {isConnected ? 'Connected' : 'Disconnected'}
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                <Header
+                    activePage="dashboard"
+                    isConnected={isConnected}
+                    refreshOptions={{
+                        refreshInterval,
+                        onRefreshIntervalChange,
+                        lastRefresh,
+                        onRefresh
+                    }}
+                    alertOptions={onOpenAlerts ? {
+                        alertCount: alertCount || 0,
+                        onOpenAlerts
+                    } : undefined}
+                />
 
                 {/* Price Table */}
                 <section className={styles.section}>
