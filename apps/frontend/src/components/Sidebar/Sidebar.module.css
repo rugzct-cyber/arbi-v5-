@@ -165,12 +165,13 @@
     transition: filter 0.15s;
 }
 
-.exchangeBtn.selected .exchangeLogo {
-    filter: grayscale(0%) opacity(1);
-}
-
 .exchangeBtn:hover .exchangeLogo {
     filter: grayscale(50%) opacity(0.7);
+}
+
+.exchangeBtn.selected .exchangeLogo,
+.exchangeBtn.selected:hover .exchangeLogo {
+    filter: none;
 }
 
 /* Exchange Name */
