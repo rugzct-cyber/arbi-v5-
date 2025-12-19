@@ -48,16 +48,55 @@ function saveAlerts(alerts: SpreadAlert[]): void {
 export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
     const [alerts, setAlerts] = useState<SpreadAlert[]>([]);
     const [triggeredAlerts, setTriggeredAlerts] = useState<AlertTrigger[]>([]);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+
+    // Play alert sound using Web Audio API
+    const playAlertSound = useCallback(() => {
+        try {
+            // Create audio context on first use (needs user interaction on some browsers)
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            const ctx = audioContextRef.current;
+
+            // Create oscillator for beep sound
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            // Configure sound: 2 beeps
+            oscillator.frequency.value = 880; // A5 note
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.15);
+
+            // Second beep
+            setTimeout(() => {
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.frequency.value = 1046; // C6 note (higher)
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc2.start(ctx.currentTime);
+                osc2.stop(ctx.currentTime + 0.2);
+            }, 180);
+        } catch (e) {
+            console.log('Audio not available:', e);
+        }
+    }, []);
 
     // Load alerts on mount
     useEffect(() => {
         setAlerts(loadAlerts());
-        // Create audio element for notifications
-        if (typeof window !== 'undefined') {
-            audioRef.current = new Audio('/alert-sound.mp3');
-            audioRef.current.volume = 0.5;
-        }
     }, []);
 
     // Save alerts when they change
@@ -123,9 +162,9 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
         if (newTriggers.length > 0) {
             setTriggeredAlerts(prev => [...newTriggers, ...prev].slice(0, 10));
             // Play sound
-            audioRef.current?.play().catch(() => { });
+            playAlertSound();
         }
-    }, [alerts, prices, calculateSpread]);
+    }, [alerts, prices, calculateSpread, playAlertSound]);
 
     // Add a new alert
     const addAlert = useCallback((
