@@ -188,7 +188,7 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                             </select>
                         </div>
 
-                        <div className={styles.arrow}>⇄</div>
+                        <div className={styles.arrow}>/</div>
 
                         <div className={styles.field}>
                             <label>Exchange</label>
@@ -211,10 +211,9 @@ export function AlertModal({ isOpen, onClose, onSubmit, prices, exchanges }: Ale
                     {/* Current Spread Display */}
                     {currentSpread !== null && (
                         <div className={styles.currentSpread}>
-                            Best spread: <span className={currentSpread.spread >= 0 ? styles.positive : styles.negative}>
+                            Current spread: <span className={currentSpread.spread >= 0 ? styles.positive : styles.negative}>
                                 {currentSpread.spread.toFixed(4)}%
                             </span>
-                            <span className={styles.direction}>({currentSpread.direction})</span>
                         </div>
                     )}
 

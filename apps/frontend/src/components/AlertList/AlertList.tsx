@@ -37,7 +37,7 @@ export function AlertList({ alerts, onToggle, onRemove, onReset, getSpread }: Al
                                 {alert.symbol.replace('-USD', '')}
                             </div>
                             <div className={styles.exchanges}>
-                                {alert.exchangeA} ⇄ {alert.exchangeB}
+                                {alert.exchangeA} / {alert.exchangeB}
                             </div>
                         </div>
 

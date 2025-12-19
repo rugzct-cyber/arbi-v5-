@@ -57,15 +57,12 @@ export function AlertNotification({ triggers, onDismiss }: AlertNotificationProp
                                 {trigger.alert.symbol.replace('-USD', '')}
                             </span>
                             <span className={styles.exchanges}>
-                                {trigger.alert.exchangeA} ⇄ {trigger.alert.exchangeB}
+                                {trigger.alert.exchangeA} / {trigger.alert.exchangeB}
                             </span>
                         </div>
                         <div className={styles.spread}>
                             Spread: <span className={trigger.currentSpread >= 0 ? styles.positive : styles.negative}>
                                 {trigger.currentSpread.toFixed(4)}%
-                            </span>
-                            <span className={styles.threshold}>
-                                ({trigger.direction})
                             </span>
                         </div>
                     </div>
