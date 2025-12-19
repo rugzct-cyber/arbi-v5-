@@ -49,6 +49,7 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
     const [alerts, setAlerts] = useState<SpreadAlert[]>([]);
     const [triggeredAlerts, setTriggeredAlerts] = useState<AlertTrigger[]>([]);
     const audioContextRef = useRef<AudioContext | null>(null);
+    const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Play alert sound using Web Audio API
     const playAlertSound = useCallback(() => {
@@ -93,6 +94,27 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
             console.log('Audio not available:', e);
         }
     }, []);
+
+    // Repeat sound every 10 seconds while there are triggered alerts
+    useEffect(() => {
+        if (triggeredAlerts.length > 0) {
+            // Play immediately
+            playAlertSound();
+            // Then repeat every 10 seconds
+            soundIntervalRef.current = setInterval(playAlertSound, 10000);
+        } else {
+            // Stop repeating when no more triggered alerts
+            if (soundIntervalRef.current) {
+                clearInterval(soundIntervalRef.current);
+                soundIntervalRef.current = null;
+            }
+        }
+        return () => {
+            if (soundIntervalRef.current) {
+                clearInterval(soundIntervalRef.current);
+            }
+        };
+    }, [triggeredAlerts.length, playAlertSound]);
 
     // Load alerts on mount
     useEffect(() => {
@@ -161,10 +183,8 @@ export function useAlerts(prices: Map<string, Map<string, PriceUpdate>>) {
 
         if (newTriggers.length > 0) {
             setTriggeredAlerts(prev => [...newTriggers, ...prev].slice(0, 10));
-            // Play sound
-            playAlertSound();
         }
-    }, [alerts, prices, calculateSpread, playAlertSound]);
+    }, [alerts, prices, calculateSpread]);
 
     // Add a new alert
     const addAlert = useCallback((
