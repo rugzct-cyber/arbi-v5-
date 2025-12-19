@@ -95,49 +95,51 @@ export function Dashboard({
     }, [selectedExchanges]);
 
     return (
-        <div className={styles.dashboardLayout}>
-            <Sidebar
-                exchanges={exchanges}
-                selectedExchanges={selectedExchanges}
-                onExchangeToggle={handleExchangeToggle}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                favorites={favorites}
-                onFavoriteToggle={handleFavoriteToggle}
-                showFavoritesOnly={showFavoritesOnly}
-                onShowFavoritesToggle={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        <div className={styles.page}>
+            {/* Header - Full width above everything */}
+            <Header
+                activePage="dashboard"
+                isConnected={isConnected}
+                refreshOptions={{
+                    refreshInterval,
+                    onRefreshIntervalChange,
+                    lastRefresh,
+                    onRefresh
+                }}
+                alertOptions={onOpenAlerts ? {
+                    alertCount: alertCount || 0,
+                    onOpenAlerts
+                } : undefined}
             />
 
-            <div className={styles.mainContent}>
-                {/* Header */}
-                <Header
-                    activePage="dashboard"
-                    isConnected={isConnected}
-                    refreshOptions={{
-                        refreshInterval,
-                        onRefreshIntervalChange,
-                        lastRefresh,
-                        onRefresh
-                    }}
-                    alertOptions={onOpenAlerts ? {
-                        alertCount: alertCount || 0,
-                        onOpenAlerts
-                    } : undefined}
+            <div className={styles.dashboardLayout}>
+                <Sidebar
+                    exchanges={exchanges}
+                    selectedExchanges={selectedExchanges}
+                    onExchangeToggle={handleExchangeToggle}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    favorites={favorites}
+                    onFavoriteToggle={handleFavoriteToggle}
+                    showFavoritesOnly={showFavoritesOnly}
+                    onShowFavoritesToggle={() => setShowFavoritesOnly(!showFavoritesOnly)}
                 />
 
-                {/* Price Table */}
-                <section className={styles.section}>
-                    <PriceTable
-                        prices={prices}
-                        selectedExchanges={selectedExchanges}
-                        searchQuery={searchQuery}
-                        showFavoritesOnly={showFavoritesOnly}
-                        favorites={favorites}
-                        activeExchangeIds={activeExchangeIds}
-                        onFavoriteToggle={handleFavoriteToggle}
-                        isLoading={isLoading}
-                    />
-                </section>
+                <div className={styles.mainContent}>
+                    {/* Price Table */}
+                    <section className={styles.section}>
+                        <PriceTable
+                            prices={prices}
+                            selectedExchanges={selectedExchanges}
+                            searchQuery={searchQuery}
+                            showFavoritesOnly={showFavoritesOnly}
+                            favorites={favorites}
+                            activeExchangeIds={activeExchangeIds}
+                            onFavoriteToggle={handleFavoriteToggle}
+                            isLoading={isLoading}
+                        />
+                    </section>
+                </div>
             </div>
         </div>
     );

@@ -142,140 +142,143 @@ export default function MetricsPage() {
     }, [selectedToken, exchangeA, exchangeB, range]);
 
     return (
-        <div className={styles.layout}>
-            {/* Sidebar with token search */}
-            <Sidebar
-                exchanges={exchanges}
-                selectedExchanges={selectedExchanges}
-                onExchangeToggle={handleExchangeToggle}
-                searchQuery={searchQuery}
-                onSearchChange={(q) => {
-                    setSearchQuery(q);
-                    // Auto-select first match
-                    const symbols = Array.from(prices.keys());
-                    const search = q.toLowerCase();
-                    const matches = symbols.filter(s =>
-                        s.toLowerCase().includes(search) ||
-                        s.replace('-USD', '').toLowerCase().includes(search)
-                    );
-                    if (matches.length > 0) {
-                        setSelectedToken(matches[0]);
-                    }
-                }}
-                favorites={new Set()}
-                onFavoriteToggle={() => { }}
-                showFavoritesOnly={false}
-                onShowFavoritesToggle={() => { }}
+        <div className={styles.page}>
+            {/* Header - Full width above everything */}
+            <Header
+                activePage="metrics"
+                isConnected={isConnected}
             />
 
-            {/* Main Content */}
-            <main className={styles.main}>
-                {/* Header */}
-                <Header
-                    activePage="metrics"
-                    isConnected={isConnected}
+            <div className={styles.layout}>
+                {/* Sidebar with token search */}
+                <Sidebar
+                    exchanges={exchanges}
+                    selectedExchanges={selectedExchanges}
+                    onExchangeToggle={handleExchangeToggle}
+                    searchQuery={searchQuery}
+                    onSearchChange={(q) => {
+                        setSearchQuery(q);
+                        // Auto-select first match
+                        const symbols = Array.from(prices.keys());
+                        const search = q.toLowerCase();
+                        const matches = symbols.filter(s =>
+                            s.toLowerCase().includes(search) ||
+                            s.replace('-USD', '').toLowerCase().includes(search)
+                        );
+                        if (matches.length > 0) {
+                            setSelectedToken(matches[0]);
+                        }
+                    }}
+                    favorites={new Set()}
+                    onFavoriteToggle={() => { }}
+                    showFavoritesOnly={false}
+                    onShowFavoritesToggle={() => { }}
                 />
 
-                {/* Controls - Range buttons and info */}
-                <div className={styles.controls}>
-                    {/* Range buttons */}
-                    <div className={styles.rangeButtons}>
-                        {(['24H', '7D', '30D', 'ALL'] as TimeRange[]).map(r => (
-                            <button
-                                key={r}
-                                className={`${styles.rangeBtn} ${range === r ? styles.active : ''}`}
-                                onClick={() => setRange(r)}
-                            >
-                                {r}
-                            </button>
-                        ))}
+                {/* Main Content */}
+                <main className={styles.main}>
+
+                    {/* Controls - Range buttons and info */}
+                    <div className={styles.controls}>
+                        {/* Range buttons */}
+                        <div className={styles.rangeButtons}>
+                            {(['24H', '7D', '30D', 'ALL'] as TimeRange[]).map(r => (
+                                <button
+                                    key={r}
+                                    className={`${styles.rangeBtn} ${range === r ? styles.active : ''}`}
+                                    onClick={() => setRange(r)}
+                                >
+                                    {r}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Info about selection */}
+                        <div className={styles.info}>
+                            {selectedToken && (
+                                <span className={styles.tokenBadge}>
+                                    {selectedToken.replace('-USD', '')}
+                                </span>
+                            )}
+                            {selectedArray.length === 2 && (
+                                <span className={styles.exchangeInfo}>
+                                    {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
+                                </span>
+                            )}
+                            {selectedArray.length < 2 && (
+                                <span className={styles.hint}>← Sélectionne 2 exchanges</span>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Info about selection */}
-                    <div className={styles.info}>
-                        {selectedToken && (
-                            <span className={styles.tokenBadge}>
-                                {selectedToken.replace('-USD', '')}
-                            </span>
-                        )}
-                        {selectedArray.length === 2 && (
-                            <span className={styles.exchangeInfo}>
-                                {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
-                            </span>
-                        )}
-                        {selectedArray.length < 2 && (
-                            <span className={styles.hint}>← Sélectionne 2 exchanges</span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Chart */}
-                <div className={styles.chartContainer}>
-                    {selectedArray.length < 2 ? (
-                        <div className={styles.placeholder}>
-                            Sélectionne exactement 2 exchanges dans la sidebar
-                        </div>
-                    ) : !selectedToken ? (
-                        <div className={styles.placeholder}>
-                            Recherche un token dans la sidebar
-                        </div>
-                    ) : isLoading ? (
-                        <div className={styles.loading}>Chargement...</div>
-                    ) : spreadData.length === 0 ? (
-                        <div className={styles.placeholder}>Pas de données historiques</div>
-                    ) : (
-                        <>
-                            <div className={styles.chartTitle}>
-                                {selectedToken.replace('-USD', '')}: {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
+                    {/* Chart */}
+                    <div className={styles.chartContainer}>
+                        {selectedArray.length < 2 ? (
+                            <div className={styles.placeholder}>
+                                Sélectionne exactement 2 exchanges dans la sidebar
                             </div>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <LineChart data={spreadData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                    <XAxis
-                                        dataKey="formattedTime"
-                                        stroke="#666"
-                                        tick={{ fill: '#888', fontSize: 11 }}
-                                        interval="preserveStartEnd"
-                                    />
-                                    <YAxis
-                                        stroke="#666"
-                                        tick={{ fill: '#888', fontSize: 11 }}
-                                        tickFormatter={(v) => `${v.toFixed(2)}%`}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: '#1a1d26',
-                                            border: '1px solid #333',
-                                            borderRadius: '8px'
-                                        }}
-                                        labelStyle={{ color: '#888' }}
-                                    />
-                                    <Legend />
-                                    <ReferenceLine y={0} stroke="#555" strokeDasharray="4 4" />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="spreadAB"
-                                        name={`Long ${exchangeA} / Short ${exchangeB}`}
-                                        stroke="#22c55e"
-                                        strokeWidth={2}
-                                        dot={false}
-                                        connectNulls
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="spreadBA"
-                                        name={`Long ${exchangeB} / Short ${exchangeA}`}
-                                        stroke="#f59e0b"
-                                        strokeWidth={2}
-                                        dot={false}
-                                        connectNulls
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </>
-                    )}
-                </div>
-            </main>
+                        ) : !selectedToken ? (
+                            <div className={styles.placeholder}>
+                                Recherche un token dans la sidebar
+                            </div>
+                        ) : isLoading ? (
+                            <div className={styles.loading}>Chargement...</div>
+                        ) : spreadData.length === 0 ? (
+                            <div className={styles.placeholder}>Pas de données historiques</div>
+                        ) : (
+                            <>
+                                <div className={styles.chartTitle}>
+                                    {selectedToken.replace('-USD', '')}: {exchangeA.toUpperCase()} vs {exchangeB.toUpperCase()}
+                                </div>
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <LineChart data={spreadData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                        <XAxis
+                                            dataKey="formattedTime"
+                                            stroke="#666"
+                                            tick={{ fill: '#888', fontSize: 11 }}
+                                            interval="preserveStartEnd"
+                                        />
+                                        <YAxis
+                                            stroke="#666"
+                                            tick={{ fill: '#888', fontSize: 11 }}
+                                            tickFormatter={(v) => `${v.toFixed(2)}%`}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: '#1a1d26',
+                                                border: '1px solid #333',
+                                                borderRadius: '8px'
+                                            }}
+                                            labelStyle={{ color: '#888' }}
+                                        />
+                                        <Legend />
+                                        <ReferenceLine y={0} stroke="#555" strokeDasharray="4 4" />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="spreadAB"
+                                            name={`Long ${exchangeA} / Short ${exchangeB}`}
+                                            stroke="#22c55e"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            connectNulls
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="spreadBA"
+                                            name={`Long ${exchangeB} / Short ${exchangeA}`}
+                                            stroke="#f59e0b"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            connectNulls
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </>
+                        )}
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }

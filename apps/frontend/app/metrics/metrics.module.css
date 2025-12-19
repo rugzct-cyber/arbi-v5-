@@ -1,7 +1,13 @@
-.layout {
+.page {
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
     background: var(--background);
+}
+
+.layout {
+    display: flex;
+    flex: 1;
 }
 
 /* Main */
