@@ -52,6 +52,10 @@ export default function PositionsPage() {
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
 
+    // Editing state for position values
+    const [editingField, setEditingField] = useState<'entryPriceLong' | 'entryPriceShort' | 'tokenAmount' | null>(null);
+    const [editValue, setEditValue] = useState('');
+
     // Spread history for chart
     const [spreadHistory, setSpreadHistory] = useState<SpreadPoint[]>([]);
 
@@ -193,6 +197,45 @@ export default function PositionsPage() {
     const handleSelectPosition = (position: Position) => {
         setSelectedPosition(position);
         setSpreadHistory([]);
+        setEditingField(null);
+    };
+
+    // Start editing a field
+    const handleStartEdit = (field: 'entryPriceLong' | 'entryPriceShort' | 'tokenAmount') => {
+        if (!selectedPosition) return;
+        setEditingField(field);
+        setEditValue(selectedPosition[field].toString());
+    };
+
+    // Save edited value
+    const handleSaveEdit = () => {
+        if (!selectedPosition || !editingField) return;
+
+        const newValue = parseFloat(editValue);
+        if (isNaN(newValue) || newValue <= 0) {
+            setEditingField(null);
+            return;
+        }
+
+        const updatedPosition = { ...selectedPosition, [editingField]: newValue };
+        setPositions(prev => prev.map(p => p.id === selectedPosition.id ? updatedPosition : p));
+        setSelectedPosition(updatedPosition);
+        setEditingField(null);
+    };
+
+    // Cancel editing
+    const handleCancelEdit = () => {
+        setEditingField(null);
+        setEditValue('');
+    };
+
+    // Handle key press in edit mode
+    const handleEditKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSaveEdit();
+        } else if (e.key === 'Escape') {
+            handleCancelEdit();
+        }
     };
 
     return (
@@ -328,13 +371,49 @@ export default function PositionsPage() {
 
                             {/* Stats Cards - Row 1 */}
                             <div className={styles.statsGrid}>
-                                <div className={styles.statCard}>
+                                <div
+                                    className={`${styles.statCard} ${styles.statCardEditable}`}
+                                    onClick={() => handleStartEdit('entryPriceLong')}
+                                    title="Cliquer pour modifier"
+                                >
                                     <span className={styles.statLabel}>ENTRÉE LONG</span>
-                                    <span className={styles.statValue}>${selectedPosition.entryPriceLong.toFixed(2)}</span>
+                                    {editingField === 'entryPriceLong' ? (
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className={styles.statInput}
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={handleSaveEdit}
+                                            onKeyDown={handleEditKeyDown}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <span className={styles.statValue}>${selectedPosition.entryPriceLong.toFixed(2)}</span>
+                                    )}
                                 </div>
-                                <div className={styles.statCard}>
+                                <div
+                                    className={`${styles.statCard} ${styles.statCardEditable}`}
+                                    onClick={() => handleStartEdit('entryPriceShort')}
+                                    title="Cliquer pour modifier"
+                                >
                                     <span className={styles.statLabel}>ENTRÉE SHORT</span>
-                                    <span className={styles.statValue}>${selectedPosition.entryPriceShort.toFixed(2)}</span>
+                                    {editingField === 'entryPriceShort' ? (
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className={styles.statInput}
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={handleSaveEdit}
+                                            onKeyDown={handleEditKeyDown}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <span className={styles.statValue}>${selectedPosition.entryPriceShort.toFixed(2)}</span>
+                                    )}
                                 </div>
                                 <div className={styles.statCard}>
                                     <span className={styles.statLabel}>SPREAD ENTRÉE</span>
@@ -342,9 +421,27 @@ export default function PositionsPage() {
                                         ${(selectedPosition.entryPriceShort - selectedPosition.entryPriceLong).toFixed(2)} ({((selectedPosition.entryPriceShort - selectedPosition.entryPriceLong) / selectedPosition.entryPriceLong * 100).toFixed(4)}%)
                                     </span>
                                 </div>
-                                <div className={styles.statCard}>
+                                <div
+                                    className={`${styles.statCard} ${styles.statCardEditable}`}
+                                    onClick={() => handleStartEdit('tokenAmount')}
+                                    title="Cliquer pour modifier"
+                                >
                                     <span className={styles.statLabel}>TOKENS</span>
-                                    <span className={styles.statValue}>{selectedPosition.tokenAmount}</span>
+                                    {editingField === 'tokenAmount' ? (
+                                        <input
+                                            type="number"
+                                            step="0.0001"
+                                            className={styles.statInput}
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={handleSaveEdit}
+                                            onKeyDown={handleEditKeyDown}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <span className={styles.statValue}>{selectedPosition.tokenAmount}</span>
+                                    )}
                                 </div>
                             </div>
                             {/* Stats Cards - Row 2 */}

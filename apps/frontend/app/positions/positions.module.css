@@ -405,6 +405,35 @@
     margin-top: 0.25rem;
 }
 
+.statCardEditable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.statCardEditable:hover {
+    border-color: var(--ring);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.statInput {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--background);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: 'Monaco', 'Consolas', monospace;
+    text-align: center;
+}
+
+.statInput:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
 .priceDetails {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
