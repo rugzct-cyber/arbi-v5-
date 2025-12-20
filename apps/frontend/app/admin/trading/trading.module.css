@@ -1,0 +1,430 @@
+.container {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0a0b0f 0%, #12141a 100%);
+    color: #f1f1f1;
+    padding: 2rem;
+}
+
+/* Access Denied Screen */
+.accessDenied {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    text-align: center;
+}
+
+.lockIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.accessDenied h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #f87171;
+}
+
+.accessDenied p {
+    color: #888;
+    margin-bottom: 1rem;
+}
+
+.hint {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.status {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.statusActive {
+    color: #4ade80;
+}
+
+.statusInactive {
+    color: #888;
+}
+
+/* Grid Layout */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Panels */
+.panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.panel h2 {
+    font-size: 1rem;
+    margin: 0 0 1rem 0;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Control Buttons */
+.controlButtons {
+    display: flex;
+    gap: 1rem;
+}
+
+.startButton,
+.stopButton {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.startButton {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+.startButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.startButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.stopButton {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.stopButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.stopButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Stats Grid */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f1f1f1;
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Config Form */
+.configForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.configRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.configRow span {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.configRow input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #f1f1f1;
+    text-align: right;
+}
+
+.configRow input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.updateButton {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.updateButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Trades List */
+.tradesList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tradeItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+}
+
+.tradeSymbol {
+    font-weight: 600;
+    color: #6366f1;
+}
+
+.tradeInfo {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.tradeSpread {
+    font-weight: 600;
+    color: #4ade80;
+}
+
+.tradeStatus {
+    font-size: 1.2rem;
+}
+
+.emptyState {
+    color: #666;
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Warning Banner */
+.warningBanner {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 8px;
+    text-align: center;
+    color: #eab308;
+    font-size: 0.9rem;
+}
+
+/* Panel Hint */
+.panelHint {
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* Exchange Selection Grid */
+.exchangeGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.exchangeItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exchangeItem:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.exchangeItem input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.exchangeName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ccc;
+}
+
+.selectedCount {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #6366f1;
+    text-align: center;
+}
+
+/* Token Input */
+.tokenInputRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tokenInput {
+    flex: 1;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #f1f1f1;
+    font-size: 0.9rem;
+}
+
+.tokenInput::placeholder {
+    color: #666;
+}
+
+.tokenInput:focus {
+    outline: none;
+    border-color: #6366f1;
+}
+
+.addTokenButton {
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.addTokenButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Token Tags */
+.tokenTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tokenTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.2) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #a5a8fc;
+}
+
+.removeTokenBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    background: rgba(239, 68, 68, 0.3);
+    border: none;
+    border-radius: 50%;
+    color: #f87171;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.removeTokenBtn:hover {
+    background: rgba(239, 68, 68, 0.5);
+}
+
+.allTokensHint {
+    color: #4ade80;
+    font-size: 0.85rem;
+    font-style: italic;
+}
