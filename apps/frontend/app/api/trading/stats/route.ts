@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // In-memory trading state (in production, this would be in the engine)
-let tradingState = {
+const tradingState = {
     isRunning: false,
     isAuthenticated: false,
     strategy: {
@@ -31,15 +31,5 @@ export async function GET(request: NextRequest) {
     }
 
     // In a real implementation, this would fetch from the engine
-    // For now, return the in-memory state
     return NextResponse.json(tradingState);
-}
-
-// Export state for other modules
-export function updateTradingState(updates: Partial<typeof tradingState>) {
-    tradingState = { ...tradingState, ...updates };
-}
-
-export function getTradingState() {
-    return tradingState;
 }

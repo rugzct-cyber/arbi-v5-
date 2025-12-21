@@ -68,8 +68,3 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 }
-
-// Export for other modules
-export function getTradingConfig() {
-    return { ...tradingConfig };
-}

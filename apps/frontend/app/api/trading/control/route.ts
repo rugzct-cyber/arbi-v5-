@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateTradingState, getTradingState } from '../stats/route';
+
+// In-memory state for bot control
+let botState = {
+    isRunning: false,
+};
 
 /**
  * Trading bot control
@@ -24,31 +28,22 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const currentState = getTradingState();
-
     if (action === 'start') {
-        if (currentState.isRunning) {
+        if (botState.isRunning) {
             return NextResponse.json({ error: 'Bot already running' }, { status: 400 });
         }
 
-        updateTradingState({
-            isRunning: true,
-            isAuthenticated: true,
-        });
-
+        botState.isRunning = true;
         console.log('[Trading API] 🟢 Bot started');
         return NextResponse.json({ success: true, message: 'Bot started' });
     }
 
     if (action === 'stop') {
-        if (!currentState.isRunning) {
+        if (!botState.isRunning) {
             return NextResponse.json({ error: 'Bot not running' }, { status: 400 });
         }
 
-        updateTradingState({
-            isRunning: false,
-        });
-
+        botState.isRunning = false;
         console.log('[Trading API] 🔴 Bot stopped');
         return NextResponse.json({ success: true, message: 'Bot stopped' });
     }
