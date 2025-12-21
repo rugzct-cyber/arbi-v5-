@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './trading.module.css';
 
@@ -31,7 +31,29 @@ interface BotConfig {
     allowedTokens: string[];
 }
 
+// Loading fallback component
+function LoadingFallback() {
+    return (
+        <div className={styles.container}>
+            <div className={styles.accessDenied}>
+                <div className={styles.spinner}></div>
+                <p>Chargement...</p>
+            </div>
+        </div>
+    );
+}
+
+// Main page wrapper with Suspense
 export default function TradingAdminPage() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <TradingAdminContent />
+        </Suspense>
+    );
+}
+
+// Actual content component
+function TradingAdminContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
 
