@@ -32,7 +32,7 @@ export class HyperliquidRESTAdapter extends BaseRESTAdapter {
         // Tier 5 - More tokens
         '0G', 'AIXBT', 'BCH', 'FIL', 'HBAR', 'ICP', 'INIT', 'INJ', 'JTO',
         'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XLM', 'XMR', 'ZK',
-        'kBONK', 'kFLOKI', 'kPEPE', 'kSHIB', 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', 'MEGA',
+        'kBONK', 'kFLOKI', 'kPEPE', 'kSHIB', 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', 'MEGA', 'LIT',
     ];
 
     constructor(config?: Partial<RESTAdapterConfig>) {
