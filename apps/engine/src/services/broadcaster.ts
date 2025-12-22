@@ -3,7 +3,7 @@ import type { SocketServer } from '../server/socket.js';
 
 export class Broadcaster {
     private io: SocketServer;
-    private batchInterval = 100; // 100ms batch interval
+    private batchInterval = 3000; // 3 seconds batch interval (reduces egress costs)
     private priceBatch: PriceUpdate[] = [];
     private batchTimer: NodeJS.Timeout | null = null;
 
