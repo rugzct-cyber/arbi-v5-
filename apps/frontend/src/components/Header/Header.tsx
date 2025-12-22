@@ -22,7 +22,7 @@ interface HeaderProps {
 }
 
 const REFRESH_OPTIONS = [
-    { label: 'Instant', value: 0 },
+    { label: '3s', value: 3000 },
     { label: '5s', value: 5000 },
     { label: '15s', value: 15000 },
     { label: '30s', value: 30000 },
