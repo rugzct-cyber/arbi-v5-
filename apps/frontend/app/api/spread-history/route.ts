@@ -79,24 +79,32 @@ export async function GET(request: NextRequest) {
         console.log(`[spread-history] Querying ${symbol}: ${buyExchange} vs ${sellExchange}, range=${range}`);
 
         // Query buy exchange prices (ask)
-        const { data: buyData, error: buyError } = await supabase
+        // Query buy exchange prices (ask) - order DESCENDING to get latest data first
+        const { data: buyDataDesc, error: buyError } = await supabase
             .from('prices')
             .select('timestamp, ask')
             .eq('symbol', symbol)
             .eq('exchange', buyExchange)
             .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true })
-            .limit(500);
+            .order('timestamp', { ascending: false })
+            .limit(2000);
+
+        // Reverse to get chronological order for charting
+        const buyData = buyDataDesc?.reverse() || [];
 
         // Query sell exchange prices (bid)
-        const { data: sellData, error: sellError } = await supabase
+        // Query sell exchange prices (bid) - order DESCENDING to get latest data first
+        const { data: sellDataDesc, error: sellError } = await supabase
             .from('prices')
             .select('timestamp, bid')
             .eq('symbol', symbol)
             .eq('exchange', sellExchange)
             .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true })
-            .limit(500);
+            .order('timestamp', { ascending: false })
+            .limit(2000);
+
+        // Reverse to get chronological order for charting
+        const sellData = sellDataDesc?.reverse() || [];
 
         if (buyError || sellError) {
             console.error('[spread-history] Supabase query failed:', buyError || sellError);
