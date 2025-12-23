@@ -7,6 +7,7 @@ import { LighterWebSocket } from './lighter-ws.js';
 import { PacificaWebSocket } from './pacifica-ws.js';
 import { EtherealWebSocket } from './ethereal-ws.js';
 import { NadoWebSocket } from './nado-ws.js';
+import { DydxWebSocket } from './dydx-ws.js';
 
 // ... inside initializeAdapters ...
 // this.adapters.push(new BackpackWebSocket(this.config));
@@ -38,7 +39,7 @@ export class ExchangeManager {
   }
 
   private initializeAdapters(): void {
-    // Initialize all 13 DEX adapters
+    // Initialize all DEX adapters
     this.adapters.set('paradex', new ParadexWebSocket(this.createAdapterConfig('paradex')));
     this.adapters.set('vest', new VestWebSocket(this.createAdapterConfig('vest')));
     this.adapters.set('extended', new ExtendedWebSocket(this.createAdapterConfig('extended')));
@@ -47,6 +48,7 @@ export class ExchangeManager {
     this.adapters.set('pacifica', new PacificaWebSocket(this.createAdapterConfig('pacifica')));
     this.adapters.set('ethereal', new EtherealWebSocket(this.createAdapterConfig('ethereal')) as any);
     this.adapters.set('nado', new NadoWebSocket(this.createAdapterConfig('nado')));
+    this.adapters.set('dydx', new DydxWebSocket(this.createAdapterConfig('dydx')));
 
     console.log(`📦 Initialized ${this.adapters.size} exchange adapters`);
   }

@@ -8,6 +8,7 @@ import { EtherealRESTAdapter } from './ethereal-rest.js';
 import { ExtendedRESTAdapter } from './extended-rest.js';
 import { VestRESTAdapter } from './vest-rest.js';
 import { NadoRESTAdapter } from './nado-rest.js';
+import { DydxRESTAdapter } from './dydx-rest.js';
 import type { SupabasePriceClient } from '../database/supabase.js';
 
 export interface RESTPollerConfig {
@@ -40,6 +41,7 @@ export class RESTPoller {
         this.adapters.push(new ExtendedRESTAdapter());
         this.adapters.push(new VestRESTAdapter());
         this.adapters.push(new NadoRESTAdapter());
+        this.adapters.push(new DydxRESTAdapter());
 
         console.log(`📡 REST Poller initialized with ${this.adapters.length} adapters`);
     }
@@ -134,4 +136,5 @@ export { EtherealRESTAdapter } from './ethereal-rest.js';
 export { ExtendedRESTAdapter } from './extended-rest.js';
 export { VestRESTAdapter } from './vest-rest.js';
 export { NadoRESTAdapter } from './nado-rest.js';
+export { DydxRESTAdapter } from './dydx-rest.js';
 
