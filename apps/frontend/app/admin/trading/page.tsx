@@ -1,22 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { io, Socket } from 'socket.io-client';
 import styles from './trading.module.css';
 
 // Available exchanges
 const ALL_EXCHANGES = ['hyperliquid', 'paradex', 'vest', 'extended', 'lighter', 'pacifica', 'ethereal', 'nado'];
 const LEVERAGE_OPTIONS = [1, 2, 5, 10, 20];
 
+// Engine Socket.io URL
+const ENGINE_URL = process.env.NEXT_PUBLIC_ENGINE_URL || 'https://arbi-v5--production.up.railway.app';
+
 interface TradingStats {
     isRunning: boolean;
     isAuthenticated: boolean;
-    performance: {
-        totalPnl: number;
-        todayPnl: number;
-        winRate: number;
-        totalTrades: number;
-    };
     strategy: {
         opportunitiesSeen: number;
         opportunitiesFiltered: number;
@@ -34,12 +32,12 @@ interface ActiveTrade {
     longExchange: string;
     shortExchange: string;
     entrySpread: number;
-    currentSpread: number;
-    entryPriceLong: number;
-    entryPriceShort: number;
-    positionSize: number;
+    currentSpread?: number;
+    entryPriceLong?: number;
+    entryPriceShort?: number;
+    positionSize?: number;
     pnl: number;
-    openedAt: string;
+    openedAt?: string;
 }
 
 interface TradeRecord {
@@ -50,9 +48,9 @@ interface TradeRecord {
     entrySpread: number;
     exitSpread: number;
     pnl: number;
-    duration: string;
+    duration?: string;
     status: 'COMPLETED' | 'FAILED' | 'LIQUIDATED';
-    closedAt: string;
+    closedAt?: string;
 }
 
 interface BotConfig {
@@ -94,6 +92,7 @@ function TradingAdminContent() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [connected, setConnected] = useState(false);
     const [stats, setStats] = useState<TradingStats | null>(null);
     const [tokenInput, setTokenInput] = useState('');
     const [config, setConfig] = useState<BotConfig>({
@@ -108,11 +107,13 @@ function TradingAdminContent() {
         allowedTokens: [],
     });
 
+    const socketRef = useRef<Socket | null>(null);
+
     // Calculate collateral
     const estimatedCollateral = (config.positionSizePerLeg * 2) / config.leverage;
     const liquidationBuffer = config.antiLiquidation ? ' (protection active)' : '';
 
-    // Verify token
+    // Verify token with local API first
     useEffect(() => {
         const verifyToken = async () => {
             if (!token) {
@@ -124,7 +125,6 @@ function TradingAdminContent() {
                 const response = await fetch(`/api/trading/auth?token=${token}`);
                 if (response.ok) {
                     setIsAuthenticated(true);
-                    fetchStats();
                 } else {
                     setError('Token invalide');
                 }
@@ -136,50 +136,70 @@ function TradingAdminContent() {
         verifyToken();
     }, [token]);
 
-    // Fetch stats
-    const fetchStats = useCallback(async () => {
-        if (!token) return;
-        try {
-            const response = await fetch(`/api/trading/stats?token=${token}`);
-            if (response.ok) {
-                const data = await response.json();
-                setStats(data);
-            }
-        } catch (err) {
-            console.error('Stats fetch error:', err);
-        }
-    }, [token]);
-
+    // Connect to engine Socket.io
     useEffect(() => {
-        if (isAuthenticated) {
-            const interval = setInterval(fetchStats, 2000);
-            return () => clearInterval(interval);
-        }
-    }, [isAuthenticated, fetchStats]);
+        if (!isAuthenticated || !token) return;
 
-    // Bot controls
-    const startBot = async () => {
-        await fetch(`/api/trading/control?token=${token}&action=start`, { method: 'POST' });
-        fetchStats();
-    };
-
-    const stopBot = async () => {
-        await fetch(`/api/trading/control?token=${token}&action=stop`, { method: 'POST' });
-        fetchStats();
-    };
-
-    const updateConfig = async () => {
-        await fetch(`/api/trading/config?token=${token}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config),
+        console.log('[Trading] Connecting to engine:', ENGINE_URL);
+        const socket = io(ENGINE_URL, {
+            transports: ['websocket', 'polling'],
         });
-        fetchStats();
+
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('[Trading] Connected to engine');
+            setConnected(true);
+            // Request current stats
+            socket.emit('trading:stats');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('[Trading] Disconnected from engine');
+            setConnected(false);
+        });
+
+        socket.on('trading:update', (data: TradingStats) => {
+            console.log('[Trading] Stats update:', data);
+            setStats(data);
+        });
+
+        socket.on('trading:error', (message: string) => {
+            console.error('[Trading] Error:', message);
+            setError(message);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [isAuthenticated, token]);
+
+    // Bot controls via Socket.io
+    const startBot = () => {
+        if (socketRef.current && token) {
+            console.log('[Trading] Sending start command');
+            socketRef.current.emit('trading:start', token);
+        }
     };
 
-    const closeTrade = async (tradeId: string) => {
-        await fetch(`/api/trading/close?token=${token}&tradeId=${tradeId}`, { method: 'POST' });
-        fetchStats();
+    const stopBot = () => {
+        if (socketRef.current) {
+            console.log('[Trading] Sending stop command');
+            socketRef.current.emit('trading:stop');
+        }
+    };
+
+    const updateConfig = () => {
+        if (socketRef.current) {
+            console.log('[Trading] Sending config update');
+            socketRef.current.emit('trading:config', {
+                paperMode: config.paperMode,
+                minSpreadPercent: config.minSpreadPercent,
+                maxSpreadPercent: config.maxSpreadPercent,
+                maxPositionSizeUsd: config.positionSizePerLeg,
+                verifyWithRest: config.verifyWithRest,
+            });
+        }
     };
 
     // Loading/Error states
@@ -206,6 +226,10 @@ function TradingAdminContent() {
         );
     }
 
+    // Calculate performance from stats
+    const totalTrades = (stats?.strategy?.tradesSucceeded || 0) + (stats?.strategy?.tradesFailed || 0);
+    const winRate = totalTrades > 0 ? ((stats?.strategy?.tradesSucceeded || 0) / totalTrades) * 100 : 0;
+
     return (
         <div className={styles.container}>
             {/* Header */}
@@ -216,12 +240,15 @@ function TradingAdminContent() {
                         {stats?.isRunning ? '● RUNNING' : '○ STOPPED'}
                     </span>
                     {config.paperMode && <span className={styles.paperBadge}>PAPER</span>}
+                    <span className={connected ? styles.statusActive : styles.statusInactive}>
+                        {connected ? '🟢 Engine' : '🔴 Offline'}
+                    </span>
                 </div>
                 <div className={styles.headerControls}>
-                    <button className={styles.startBtn} onClick={startBot} disabled={stats?.isRunning}>
+                    <button className={styles.startBtn} onClick={startBot} disabled={stats?.isRunning || !connected}>
                         ▶ Start
                     </button>
-                    <button className={styles.stopBtn} onClick={stopBot} disabled={!stats?.isRunning}>
+                    <button className={styles.stopBtn} onClick={stopBot} disabled={!stats?.isRunning || !connected}>
                         ⏹ Stop
                     </button>
                 </div>
@@ -230,28 +257,28 @@ function TradingAdminContent() {
             {/* Performance Dashboard */}
             <section className={styles.performanceBar}>
                 <div className={styles.perfItem}>
-                    <span className={styles.perfValue} data-positive={(stats?.performance?.totalPnl ?? 0) >= 0}>
-                        {(stats?.performance?.totalPnl ?? 0) >= 0 ? '+' : ''}{stats?.performance?.totalPnl?.toFixed(2) || '0.00'}$
-                    </span>
-                    <span className={styles.perfLabel}>PnL Total</span>
-                </div>
-                <div className={styles.perfItem}>
-                    <span className={styles.perfValue} data-positive={(stats?.performance?.todayPnl ?? 0) >= 0}>
-                        {(stats?.performance?.todayPnl ?? 0) >= 0 ? '+' : ''}{stats?.performance?.todayPnl?.toFixed(2) || '0.00'}$
-                    </span>
-                    <span className={styles.perfLabel}>Aujourd'hui</span>
-                </div>
-                <div className={styles.perfItem}>
-                    <span className={styles.perfValue}>{stats?.performance?.winRate?.toFixed(1) || '0'}%</span>
-                    <span className={styles.perfLabel}>Win Rate</span>
-                </div>
-                <div className={styles.perfItem}>
-                    <span className={styles.perfValue}>{stats?.performance?.totalTrades || 0}</span>
-                    <span className={styles.perfLabel}>Trades</span>
-                </div>
-                <div className={styles.perfItem}>
                     <span className={styles.perfValue}>{stats?.strategy?.opportunitiesSeen || 0}</span>
                     <span className={styles.perfLabel}>Opportunités</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue}>{stats?.strategy?.tradesAttempted || 0}</span>
+                    <span className={styles.perfLabel}>Tentatives</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue} style={{ color: '#4ade80' }}>
+                        {stats?.strategy?.tradesSucceeded || 0}
+                    </span>
+                    <span className={styles.perfLabel}>Réussis</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue} style={{ color: '#f87171' }}>
+                        {stats?.strategy?.tradesFailed || 0}
+                    </span>
+                    <span className={styles.perfLabel}>Échoués</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue}>{winRate.toFixed(1)}%</span>
+                    <span className={styles.perfLabel}>Win Rate</span>
                 </div>
             </section>
 
@@ -329,7 +356,7 @@ function TradingAdminContent() {
                             💰 Collateral estimé: <strong>${estimatedCollateral.toFixed(2)}</strong>
                             {liquidationBuffer}
                         </div>
-                        <button className={styles.updateBtn} onClick={updateConfig}>
+                        <button className={styles.updateBtn} onClick={updateConfig} disabled={!connected}>
                             Sauvegarder
                         </button>
                     </section>
@@ -415,9 +442,7 @@ function TradingAdminContent() {
                                     <span>Token</span>
                                     <span>Long → Short</span>
                                     <span>Entry</span>
-                                    <span>Current</span>
                                     <span>PnL</span>
-                                    <span>Action</span>
                                 </div>
                                 {stats.activeTrades.map((trade) => (
                                     <div key={trade.id} className={styles.tableRow}>
@@ -425,14 +450,10 @@ function TradingAdminContent() {
                                         <span className={styles.tradeExchanges}>
                                             {trade.longExchange} → {trade.shortExchange}
                                         </span>
-                                        <span>{trade.entrySpread.toFixed(3)}%</span>
-                                        <span>{trade.currentSpread.toFixed(3)}%</span>
-                                        <span className={styles.tradePnl} data-positive={trade.pnl >= 0}>
-                                            {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}$
+                                        <span>{trade.entrySpread?.toFixed(3)}%</span>
+                                        <span className={styles.tradePnl} data-positive={(trade.pnl ?? 0) >= 0}>
+                                            {(trade.pnl ?? 0) >= 0 ? '+' : ''}{(trade.pnl ?? 0).toFixed(2)}$
                                         </span>
-                                        <button className={styles.closeBtn} onClick={() => closeTrade(trade.id)}>
-                                            Fermer
-                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -451,7 +472,6 @@ function TradingAdminContent() {
                                     <span>Exchanges</span>
                                     <span>Entry → Exit</span>
                                     <span>PnL</span>
-                                    <span>Status</span>
                                 </div>
                                 {stats.tradeHistory.slice(0, 10).map((trade) => (
                                     <div key={trade.id} className={styles.tableRow}>
@@ -459,12 +479,9 @@ function TradingAdminContent() {
                                         <span className={styles.tradeExchanges}>
                                             {trade.longExchange} / {trade.shortExchange}
                                         </span>
-                                        <span>{trade.entrySpread.toFixed(2)}% → {trade.exitSpread.toFixed(2)}%</span>
-                                        <span className={styles.tradePnl} data-positive={trade.pnl >= 0}>
-                                            {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}$
-                                        </span>
-                                        <span className={styles.tradeStatus} data-status={trade.status}>
-                                            {trade.status === 'COMPLETED' ? '✅' : trade.status === 'LIQUIDATED' ? '💀' : '❌'}
+                                        <span>{trade.entrySpread?.toFixed(2)}% → {trade.exitSpread?.toFixed(2)}%</span>
+                                        <span className={styles.tradePnl} data-positive={(trade.pnl ?? 0) >= 0}>
+                                            {(trade.pnl ?? 0) >= 0 ? '+' : ''}{(trade.pnl ?? 0).toFixed(2)}$
                                         </span>
                                     </div>
                                 ))}
