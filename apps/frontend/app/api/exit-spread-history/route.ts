@@ -90,30 +90,22 @@ export async function GET(request: NextRequest) {
         // For EXIT spread, we need:
         // - Long exchange BID (what we receive when closing long)
         // - Short exchange ASK (what we pay when closing short)
-        // Order DESCENDING to get latest data first
-        const { data: longDataDesc, error: longError } = await supabase
+        // Get ALL data in the time range
+        const { data: longData, error: longError } = await supabase
             .from('prices')
             .select('timestamp, bid')
             .eq('symbol', symbol)
             .eq('exchange', longExchange)
             .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: false })
-            .limit(2000);
+            .order('timestamp', { ascending: true });
 
-        // Reverse to get chronological order
-        const longData = longDataDesc?.reverse() || [];
-
-        const { data: shortDataDesc, error: shortError } = await supabase
+        const { data: shortData, error: shortError } = await supabase
             .from('prices')
             .select('timestamp, ask')
             .eq('symbol', symbol)
             .eq('exchange', shortExchange)
             .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: false })
-            .limit(2000);
-
-        // Reverse to get chronological order
-        const shortData = shortDataDesc?.reverse() || [];
+            .order('timestamp', { ascending: true });
 
         if (longError || shortError) {
             console.error('[exit-spread-history] Supabase query failed:', longError || shortError);
