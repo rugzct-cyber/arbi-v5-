@@ -230,14 +230,14 @@ function TradingAdminContent() {
             {/* Performance Dashboard */}
             <section className={styles.performanceBar}>
                 <div className={styles.perfItem}>
-                    <span className={styles.perfValue} data-positive={stats?.performance?.totalPnl >= 0}>
-                        {stats?.performance?.totalPnl >= 0 ? '+' : ''}{stats?.performance?.totalPnl?.toFixed(2) || '0.00'}$
+                    <span className={styles.perfValue} data-positive={(stats?.performance?.totalPnl ?? 0) >= 0}>
+                        {(stats?.performance?.totalPnl ?? 0) >= 0 ? '+' : ''}{stats?.performance?.totalPnl?.toFixed(2) || '0.00'}$
                     </span>
                     <span className={styles.perfLabel}>PnL Total</span>
                 </div>
                 <div className={styles.perfItem}>
-                    <span className={styles.perfValue} data-positive={stats?.performance?.todayPnl >= 0}>
-                        {stats?.performance?.todayPnl >= 0 ? '+' : ''}{stats?.performance?.todayPnl?.toFixed(2) || '0.00'}$
+                    <span className={styles.perfValue} data-positive={(stats?.performance?.todayPnl ?? 0) >= 0}>
+                        {(stats?.performance?.todayPnl ?? 0) >= 0 ? '+' : ''}{stats?.performance?.todayPnl?.toFixed(2) || '0.00'}$
                     </span>
                     <span className={styles.perfLabel}>Aujourd'hui</span>
                 </div>
