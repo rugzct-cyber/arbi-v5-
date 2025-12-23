@@ -182,11 +182,42 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        console.log(`[exit-spread-history] Result: ${data.length} exit spread points calculated`);
+        // Downsample data based on time range
+        const downsampledData = downsampleData(data, range);
 
-        return NextResponse.json({ data });
+        console.log(`[exit-spread-history] Result: ${data.length} points, ${downsampledData.length} after downsampling`);
+
+        return NextResponse.json({ data: downsampledData });
     } catch (error) {
         console.error('[exit-spread-history] Error:', error);
         return NextResponse.json({ data: [] });
     }
+}
+
+// Downsample data to reduce points for larger time ranges
+function downsampleData(data: Array<{ time: string; spread: number; longBid: number; shortAsk: number }>, range: string) {
+    if (data.length === 0) return data;
+
+    const targetPoints: Record<string, number> = {
+        '24H': 288,
+        '7D': 336,
+        '30D': 360,
+        'ALL': 300,
+    };
+
+    const target = targetPoints[range] || 300;
+    if (data.length <= target) return data;
+
+    const step = Math.ceil(data.length / target);
+    const sampled: typeof data = [];
+
+    for (let i = 0; i < data.length; i += step) {
+        sampled.push(data[i]);
+    }
+
+    if (sampled[sampled.length - 1] !== data[data.length - 1]) {
+        sampled.push(data[data.length - 1]);
+    }
+
+    return sampled;
 }

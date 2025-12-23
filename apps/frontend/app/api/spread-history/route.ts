@@ -169,11 +169,49 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        console.log(`[spread-history] Result: ${data.length} spread points calculated`);
+        // Downsample data based on time range to keep chart performant
+        // Target: ~300 data points max
+        const downsampledData = downsampleData(data, range);
 
-        return NextResponse.json({ data });
+        console.log(`[spread-history] Result: ${data.length} points calculated, ${downsampledData.length} after downsampling`);
+
+        return NextResponse.json({ data: downsampledData });
     } catch (error) {
         console.error('[spread-history] Error:', error);
         return NextResponse.json({ data: [] });
     }
+}
+
+// Downsample data to reduce points for larger time ranges
+function downsampleData(data: Array<{ time: string; spread: number }>, range: string): Array<{ time: string; spread: number }> {
+    if (data.length === 0) return data;
+
+    // Target number of points per range
+    const targetPoints: Record<string, number> = {
+        '24H': 288,   // Every 5 min (no downsampling)
+        '7D': 336,    // Every 30 min (~300 points)
+        '30D': 360,   // Every 2 hours (~360 points)
+        'ALL': 300,   // ~300 points regardless of range
+    };
+
+    const target = targetPoints[range] || 300;
+
+    // If we have fewer points than target, return as is
+    if (data.length <= target) return data;
+
+    // Calculate step size
+    const step = Math.ceil(data.length / target);
+
+    // Sample every nth point
+    const sampled: Array<{ time: string; spread: number }> = [];
+    for (let i = 0; i < data.length; i += step) {
+        sampled.push(data[i]);
+    }
+
+    // Always include the last point for accuracy
+    if (sampled[sampled.length - 1] !== data[data.length - 1]) {
+        sampled.push(data[data.length - 1]);
+    }
+
+    return sampled;
 }
