@@ -78,23 +78,52 @@ export async function GET(request: NextRequest) {
     try {
         console.log(`[spread-history] Querying ${symbol}: ${buyExchange} vs ${sellExchange}, range=${range}`);
 
-        // Query buy exchange prices (ask) - get ALL data in the time range
-        const { data: buyData, error: buyError } = await supabase
-            .from('prices')
-            .select('timestamp, ask')
-            .eq('symbol', symbol)
-            .eq('exchange', buyExchange)
-            .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true });
+        // Helper function to fetch all data with pagination (Supabase limits to 1000 per request)
+        async function fetchAllPaginated(exchange: string, priceField: 'ask' | 'bid') {
+            const allData: any[] = [];
+            const pageSize = 1000;
+            let offset = 0;
+            let hasMore = true;
 
-        // Query sell exchange prices (bid) - get ALL data in the time range
-        const { data: sellData, error: sellError } = await supabase
-            .from('prices')
-            .select('timestamp, bid')
-            .eq('symbol', symbol)
-            .eq('exchange', sellExchange)
-            .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true });
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('prices')
+                    .select(`timestamp, ${priceField}`)
+                    .eq('symbol', symbol)
+                    .eq('exchange', exchange)
+                    .gte('timestamp', startTime.toISOString())
+                    .order('timestamp', { ascending: true })
+                    .range(offset, offset + pageSize - 1);
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    hasMore = false;
+                } else {
+                    allData.push(...data);
+                    offset += pageSize;
+                    hasMore = data.length === pageSize;
+                }
+            }
+            return allData;
+        }
+
+        // Fetch all data with pagination
+        let buyData: any[] = [];
+        let sellData: any[] = [];
+        let buyError: any = null;
+        let sellError: any = null;
+
+        try {
+            buyData = await fetchAllPaginated(buyExchange, 'ask');
+        } catch (e) {
+            buyError = e;
+        }
+
+        try {
+            sellData = await fetchAllPaginated(sellExchange, 'bid');
+        } catch (e) {
+            sellError = e;
+        }
 
         if (buyError || sellError) {
             console.error('[spread-history] Supabase query failed:', buyError || sellError);

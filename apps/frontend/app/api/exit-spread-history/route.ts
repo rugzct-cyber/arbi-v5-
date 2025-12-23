@@ -87,25 +87,54 @@ export async function GET(request: NextRequest) {
     try {
         console.log(`[exit-spread-history] Querying ${symbol}: LONG ${longExchange} (bid) vs SHORT ${shortExchange} (ask), range=${range}`);
 
+        // Helper function to fetch all data with pagination (Supabase limits to 1000 per request)
+        async function fetchAllPaginated(exchange: string, priceField: 'ask' | 'bid') {
+            const allData: any[] = [];
+            const pageSize = 1000;
+            let offset = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('prices')
+                    .select(`timestamp, ${priceField}`)
+                    .eq('symbol', symbol)
+                    .eq('exchange', exchange)
+                    .gte('timestamp', startTime.toISOString())
+                    .order('timestamp', { ascending: true })
+                    .range(offset, offset + pageSize - 1);
+
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    hasMore = false;
+                } else {
+                    allData.push(...data);
+                    offset += pageSize;
+                    hasMore = data.length === pageSize;
+                }
+            }
+            return allData;
+        }
+
         // For EXIT spread, we need:
         // - Long exchange BID (what we receive when closing long)
         // - Short exchange ASK (what we pay when closing short)
-        // Get ALL data in the time range
-        const { data: longData, error: longError } = await supabase
-            .from('prices')
-            .select('timestamp, bid')
-            .eq('symbol', symbol)
-            .eq('exchange', longExchange)
-            .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true });
+        let longData: any[] = [];
+        let shortData: any[] = [];
+        let longError: any = null;
+        let shortError: any = null;
 
-        const { data: shortData, error: shortError } = await supabase
-            .from('prices')
-            .select('timestamp, ask')
-            .eq('symbol', symbol)
-            .eq('exchange', shortExchange)
-            .gte('timestamp', startTime.toISOString())
-            .order('timestamp', { ascending: true });
+        try {
+            longData = await fetchAllPaginated(longExchange, 'bid');
+        } catch (e) {
+            longError = e;
+        }
+
+        try {
+            shortData = await fetchAllPaginated(shortExchange, 'ask');
+        } catch (e) {
+            shortError = e;
+        }
 
         if (longError || shortError) {
             console.error('[exit-spread-history] Supabase query failed:', longError || shortError);
