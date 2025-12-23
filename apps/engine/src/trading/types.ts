@@ -10,10 +10,10 @@ export type TradeSide = 'LONG' | 'SHORT';
 export type OrderType = 'MARKET' | 'LIMIT';
 
 // Order status
-export type OrderStatus = 'PENDING' | 'OPEN' | 'FILLED' | 'CANCELLED' | 'FAILED';
+export type OrderStatus = 'PENDING' | 'OPEN' | 'PARTIAL' | 'FILLED' | 'CANCELLED' | 'FAILED';
 
 // Trade status
-export type TradeStatus = 'PENDING' | 'EXECUTING' | 'PARTIAL' | 'COMPLETED' | 'FAILED';
+export type TradeStatus = 'PENDING' | 'EXECUTING' | 'ACTIVE' | 'CLOSING' | 'PARTIAL' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 /**
  * Configuration for the trading bot
@@ -116,7 +116,13 @@ export interface ArbitrageTrade {
     executedAt?: number;
     closedAt?: number;
 
-    // PnL (calculated on close)
+    // Exit prices (set on close)
+    exitPriceLong?: number;
+    exitPriceShort?: number;
+    exitSpread?: number;
+
+    // PnL (updated during trade and finalized on close)
+    pnl?: number;
     realizedPnl?: number;
 
     // Error if failed
@@ -139,6 +145,8 @@ export interface TradeResult {
     success: boolean;
     trade?: ArbitrageTrade;
     error?: string;
+    status?: TradeStatus;
+    symbol?: string;
 }
 
 /**

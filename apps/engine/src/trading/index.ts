@@ -30,7 +30,9 @@ export * from './types.js';
 // Core components
 export { RiskManager } from './risk-manager.js';
 export { WalletManager } from './wallet-manager.js';
-export { TradeExecutor } from './trade-executor.js';
+export { TradeExecutor, OrderExecutor } from './trade-executor.js';
+export { TradePersistence } from './trade-persistence.js';
+export { PositionMonitor } from './position-monitor.js';
 
 // Strategies
 export { SimpleArbStrategy } from './strategies/simple-arb.js';
