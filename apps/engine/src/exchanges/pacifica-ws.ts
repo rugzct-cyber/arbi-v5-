@@ -40,7 +40,7 @@ export class PacificaWebSocket extends BaseExchangeAdapter {
         // Tier 5 - More tokens
         '0G', 'AIXBT', 'BCH', 'FIL', 'GMX', 'DYDX', 'HBAR', 'ICP', 'INIT', 'INJ', 'JTO',
         'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XLM', 'XMR', 'ZK',
-        'kBONK', 'kFLOKI', 'kPEPE', 'kSHIB', 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', '2Z', 'LIT',
+        'kBONK', 'kFLOKI', 'kPEPE', 'kSHIB', 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', '2Z', 'LIT', 'MEGA',
     ];
 
     protected onOpen(): void {
