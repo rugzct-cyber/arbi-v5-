@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 // Trading configuration (in production, this would be in the engine)
 let tradingConfig = {
     paperMode: true,
-    minSpreadPercent: 0.15,
+    minSpreadPercent: 0.2,
     maxSpreadPercent: 5.0,
-    maxPositionSizeUsd: 100,
-    maxTotalExposureUsd: 500,
+    positionSizePerLeg: 100,
+    leverage: 5,
     verifyWithRest: true,
-    tradeCooldownMs: 5000,
-    slippageTolerance: 0.1,
+    antiLiquidation: true,
+    selectedExchanges: ['hyperliquid', 'paradex'] as string[],
+    allowedTokens: [] as string[],
 };
 
 /**
@@ -22,7 +23,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    // Verify token
     const secretToken = process.env.TRADING_SECRET_TOKEN;
     if (!secretToken || token !== secretToken) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    // Verify token
     const secretToken = process.env.TRADING_SECRET_TOKEN;
     if (!secretToken || token !== secretToken) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -52,13 +51,25 @@ export async function POST(request: NextRequest) {
             tradingConfig.minSpreadPercent = Math.max(0.01, updates.minSpreadPercent);
         }
         if (typeof updates.maxSpreadPercent === 'number') {
-            tradingConfig.maxSpreadPercent = Math.min(10, updates.maxSpreadPercent);
+            tradingConfig.maxSpreadPercent = Math.min(20, updates.maxSpreadPercent);
         }
-        if (typeof updates.maxPositionSizeUsd === 'number') {
-            tradingConfig.maxPositionSizeUsd = Math.max(10, updates.maxPositionSizeUsd);
+        if (typeof updates.positionSizePerLeg === 'number') {
+            tradingConfig.positionSizePerLeg = Math.max(10, updates.positionSizePerLeg);
+        }
+        if (typeof updates.leverage === 'number') {
+            tradingConfig.leverage = Math.min(20, Math.max(1, updates.leverage));
         }
         if (typeof updates.verifyWithRest === 'boolean') {
             tradingConfig.verifyWithRest = updates.verifyWithRest;
+        }
+        if (typeof updates.antiLiquidation === 'boolean') {
+            tradingConfig.antiLiquidation = updates.antiLiquidation;
+        }
+        if (Array.isArray(updates.selectedExchanges)) {
+            tradingConfig.selectedExchanges = updates.selectedExchanges;
+        }
+        if (Array.isArray(updates.allowedTokens)) {
+            tradingConfig.allowedTokens = updates.allowedTokens;
         }
 
         console.log('[Trading API] Config updated:', tradingConfig);

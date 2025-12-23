@@ -6,10 +6,17 @@ import styles from './trading.module.css';
 
 // Available exchanges
 const ALL_EXCHANGES = ['hyperliquid', 'paradex', 'vest', 'extended', 'lighter', 'pacifica', 'ethereal', 'nado'];
+const LEVERAGE_OPTIONS = [1, 2, 5, 10, 20];
 
 interface TradingStats {
     isRunning: boolean;
     isAuthenticated: boolean;
+    performance: {
+        totalPnl: number;
+        todayPnl: number;
+        winRate: number;
+        totalTrades: number;
+    };
     strategy: {
         opportunitiesSeen: number;
         opportunitiesFiltered: number;
@@ -17,21 +24,50 @@ interface TradingStats {
         tradesSucceeded: number;
         tradesFailed: number;
     };
-    activeTrades: any[];
-    tradeHistory: any[];
+    activeTrades: ActiveTrade[];
+    tradeHistory: TradeRecord[];
+}
+
+interface ActiveTrade {
+    id: string;
+    symbol: string;
+    longExchange: string;
+    shortExchange: string;
+    entrySpread: number;
+    currentSpread: number;
+    entryPriceLong: number;
+    entryPriceShort: number;
+    positionSize: number;
+    pnl: number;
+    openedAt: string;
+}
+
+interface TradeRecord {
+    id: string;
+    symbol: string;
+    longExchange: string;
+    shortExchange: string;
+    entrySpread: number;
+    exitSpread: number;
+    pnl: number;
+    duration: string;
+    status: 'COMPLETED' | 'FAILED' | 'LIQUIDATED';
+    closedAt: string;
 }
 
 interface BotConfig {
     paperMode: boolean;
     minSpreadPercent: number;
     maxSpreadPercent: number;
-    maxPositionSizeUsd: number;
+    positionSizePerLeg: number;
+    leverage: number;
     verifyWithRest: boolean;
+    antiLiquidation: boolean;
     selectedExchanges: string[];
     allowedTokens: string[];
 }
 
-// Loading fallback component
+// Loading fallback
 function LoadingFallback() {
     return (
         <div className={styles.container}>
@@ -43,7 +79,6 @@ function LoadingFallback() {
     );
 }
 
-// Main page wrapper with Suspense
 export default function TradingAdminPage() {
     return (
         <Suspense fallback={<LoadingFallback />}>
@@ -52,7 +87,6 @@ export default function TradingAdminPage() {
     );
 }
 
-// Actual content component
 function TradingAdminContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
@@ -64,44 +98,47 @@ function TradingAdminContent() {
     const [tokenInput, setTokenInput] = useState('');
     const [config, setConfig] = useState<BotConfig>({
         paperMode: true,
-        minSpreadPercent: 0.15,
+        minSpreadPercent: 0.2,
         maxSpreadPercent: 5.0,
-        maxPositionSizeUsd: 100,
+        positionSizePerLeg: 100,
+        leverage: 5,
         verifyWithRest: true,
+        antiLiquidation: true,
         selectedExchanges: ['hyperliquid', 'paradex'],
         allowedTokens: [],
     });
 
-    // Verify token on load
+    // Calculate collateral
+    const estimatedCollateral = (config.positionSizePerLeg * 2) / config.leverage;
+    const liquidationBuffer = config.antiLiquidation ? ' (protection active)' : '';
+
+    // Verify token
     useEffect(() => {
         const verifyToken = async () => {
             if (!token) {
-                setError('Token manquant. Accès refusé.');
+                setError('Token manquant');
                 setIsLoading(false);
                 return;
             }
-
             try {
                 const response = await fetch(`/api/trading/auth?token=${token}`);
                 if (response.ok) {
                     setIsAuthenticated(true);
                     fetchStats();
                 } else {
-                    setError('Token invalide. Accès refusé.');
+                    setError('Token invalide');
                 }
-            } catch (err) {
-                setError('Erreur de vérification du token.');
+            } catch {
+                setError('Erreur réseau');
             }
             setIsLoading(false);
         };
-
         verifyToken();
     }, [token]);
 
-    // Fetch stats periodically
+    // Fetch stats
     const fetchStats = useCallback(async () => {
         if (!token) return;
-
         try {
             const response = await fetch(`/api/trading/stats?token=${token}`);
             if (response.ok) {
@@ -109,7 +146,7 @@ function TradingAdminContent() {
                 setStats(data);
             }
         } catch (err) {
-            console.error('Error fetching stats:', err);
+            console.error('Stats fetch error:', err);
         }
     }, [token]);
 
@@ -120,15 +157,15 @@ function TradingAdminContent() {
         }
     }, [isAuthenticated, fetchStats]);
 
-    // Bot control functions
+    // Bot controls
     const startBot = async () => {
-        const response = await fetch(`/api/trading/control?token=${token}&action=start`, { method: 'POST' });
-        if (response.ok) fetchStats();
+        await fetch(`/api/trading/control?token=${token}&action=start`, { method: 'POST' });
+        fetchStats();
     };
 
     const stopBot = async () => {
-        const response = await fetch(`/api/trading/control?token=${token}&action=stop`, { method: 'POST' });
-        if (response.ok) fetchStats();
+        await fetch(`/api/trading/control?token=${token}&action=stop`, { method: 'POST' });
+        fetchStats();
     };
 
     const updateConfig = async () => {
@@ -140,7 +177,12 @@ function TradingAdminContent() {
         fetchStats();
     };
 
-    // Access denied screen
+    const closeTrade = async (tradeId: string) => {
+        await fetch(`/api/trading/close?token=${token}&tradeId=${tradeId}`, { method: 'POST' });
+        fetchStats();
+    };
+
+    // Loading/Error states
     if (isLoading) {
         return (
             <div className={styles.container}>
@@ -158,8 +200,7 @@ function TradingAdminContent() {
                 <div className={styles.accessDenied}>
                     <div className={styles.lockIcon}>🔒</div>
                     <h1>Accès Refusé</h1>
-                    <p>{error || 'Cette page est protégée.'}</p>
-                    <code className={styles.hint}>?token=TRADING_SECRET_TOKEN</code>
+                    <p>{error || 'Token requis'}</p>
                 </div>
             </div>
         );
@@ -169,263 +210,276 @@ function TradingAdminContent() {
         <div className={styles.container}>
             {/* Header */}
             <header className={styles.header}>
-                <h1>🤖 Trading Bot Admin</h1>
-                <div className={styles.status}>
+                <div className={styles.headerLeft}>
+                    <h1>🤖 Trading Bot</h1>
                     <span className={stats?.isRunning ? styles.statusActive : styles.statusInactive}>
                         {stats?.isRunning ? '● RUNNING' : '○ STOPPED'}
                     </span>
+                    {config.paperMode && <span className={styles.paperBadge}>PAPER</span>}
+                </div>
+                <div className={styles.headerControls}>
+                    <button className={styles.startBtn} onClick={startBot} disabled={stats?.isRunning}>
+                        ▶ Start
+                    </button>
+                    <button className={styles.stopBtn} onClick={stopBot} disabled={!stats?.isRunning}>
+                        ⏹ Stop
+                    </button>
                 </div>
             </header>
 
-            <div className={styles.grid}>
-                {/* Control Panel */}
-                <section className={styles.panel}>
-                    <h2>Contrôles</h2>
-                    <div className={styles.controlButtons}>
-                        <button
-                            className={styles.startButton}
-                            onClick={startBot}
-                            disabled={stats?.isRunning}
-                        >
-                            ▶ Démarrer
-                        </button>
-                        <button
-                            className={styles.stopButton}
-                            onClick={stopBot}
-                            disabled={!stats?.isRunning}
-                        >
-                            ⏹ Arrêter
-                        </button>
-                    </div>
-                </section>
+            {/* Performance Dashboard */}
+            <section className={styles.performanceBar}>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue} data-positive={stats?.performance?.totalPnl >= 0}>
+                        {stats?.performance?.totalPnl >= 0 ? '+' : ''}{stats?.performance?.totalPnl?.toFixed(2) || '0.00'}$
+                    </span>
+                    <span className={styles.perfLabel}>PnL Total</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue} data-positive={stats?.performance?.todayPnl >= 0}>
+                        {stats?.performance?.todayPnl >= 0 ? '+' : ''}{stats?.performance?.todayPnl?.toFixed(2) || '0.00'}$
+                    </span>
+                    <span className={styles.perfLabel}>Aujourd'hui</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue}>{stats?.performance?.winRate?.toFixed(1) || '0'}%</span>
+                    <span className={styles.perfLabel}>Win Rate</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue}>{stats?.performance?.totalTrades || 0}</span>
+                    <span className={styles.perfLabel}>Trades</span>
+                </div>
+                <div className={styles.perfItem}>
+                    <span className={styles.perfValue}>{stats?.strategy?.opportunitiesSeen || 0}</span>
+                    <span className={styles.perfLabel}>Opportunités</span>
+                </div>
+            </section>
 
-                {/* Stats Panel */}
-                <section className={styles.panel}>
-                    <h2>Statistiques</h2>
-                    <div className={styles.statsGrid}>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>{stats?.strategy.opportunitiesSeen || 0}</span>
-                            <span className={styles.statLabel}>Opportunités vues</span>
-                        </div>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue}>{stats?.strategy.tradesAttempted || 0}</span>
-                            <span className={styles.statLabel}>Trades tentés</span>
-                        </div>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue} style={{ color: '#4ade80' }}>
-                                {stats?.strategy.tradesSucceeded || 0}
-                            </span>
-                            <span className={styles.statLabel}>Réussis</span>
-                        </div>
-                        <div className={styles.stat}>
-                            <span className={styles.statValue} style={{ color: '#f87171' }}>
-                                {stats?.strategy.tradesFailed || 0}
-                            </span>
-                            <span className={styles.statLabel}>Échoués</span>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Configuration Panel */}
-                <section className={styles.panel}>
-                    <h2>Configuration</h2>
-                    <div className={styles.configForm}>
-                        <label className={styles.configRow}>
-                            <span>Paper Mode (simulation)</span>
-                            <input
-                                type="checkbox"
-                                checked={config.paperMode}
-                                onChange={(e) => setConfig({ ...config, paperMode: e.target.checked })}
-                            />
-                        </label>
-                        <label className={styles.configRow}>
-                            <span>Vérification REST</span>
-                            <input
-                                type="checkbox"
-                                checked={config.verifyWithRest}
-                                onChange={(e) => setConfig({ ...config, verifyWithRest: e.target.checked })}
-                            />
-                        </label>
-                        <label className={styles.configRow}>
-                            <span>Spread minimum (%)</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={config.minSpreadPercent}
-                                onChange={(e) => setConfig({ ...config, minSpreadPercent: parseFloat(e.target.value) })}
-                            />
-                        </label>
-                        <label className={styles.configRow}>
-                            <span>Spread maximum (%)</span>
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={config.maxSpreadPercent}
-                                onChange={(e) => setConfig({ ...config, maxSpreadPercent: parseFloat(e.target.value) })}
-                            />
-                        </label>
-                        <label className={styles.configRow}>
-                            <span>Taille max position ($)</span>
-                            <input
-                                type="number"
-                                step="10"
-                                value={config.maxPositionSizeUsd}
-                                onChange={(e) => setConfig({ ...config, maxPositionSizeUsd: parseFloat(e.target.value) })}
-                            />
-                        </label>
-                        <button className={styles.updateButton} onClick={updateConfig}>
-                            Mettre à jour
-                        </button>
-                    </div>
-                </section>
-
-                {/* Exchange Selection Panel */}
-                <section className={styles.panel}>
-                    <h2>Exchanges Actifs</h2>
-                    <p className={styles.panelHint}>Sélectionne les exchanges sur lesquels le bot peut trader :</p>
-                    <div className={styles.exchangeGrid}>
-                        {ALL_EXCHANGES.map((exchange) => (
-                            <label key={exchange} className={styles.exchangeItem}>
+            <div className={styles.mainGrid}>
+                {/* Left Column - Config */}
+                <div className={styles.leftColumn}>
+                    {/* Configuration */}
+                    <section className={styles.panel}>
+                        <h2>⚙️ Configuration</h2>
+                        <div className={styles.configGrid}>
+                            <label className={styles.configItem}>
+                                <span>Paper Mode</span>
                                 <input
                                     type="checkbox"
-                                    checked={config.selectedExchanges.includes(exchange)}
-                                    onChange={(e) => {
-                                        if (e.target.checked) {
-                                            setConfig({
-                                                ...config,
-                                                selectedExchanges: [...config.selectedExchanges, exchange]
-                                            });
-                                        } else {
-                                            setConfig({
-                                                ...config,
-                                                selectedExchanges: config.selectedExchanges.filter(ex => ex !== exchange)
-                                            });
-                                        }
-                                    }}
+                                    checked={config.paperMode}
+                                    onChange={(e) => setConfig({ ...config, paperMode: e.target.checked })}
                                 />
-                                <span className={styles.exchangeName}>{exchange.toUpperCase()}</span>
                             </label>
-                        ))}
-                    </div>
-                    <p className={styles.selectedCount}>
-                        {config.selectedExchanges.length} exchange(s) sélectionné(s)
-                    </p>
-                </section>
+                            <label className={styles.configItem}>
+                                <span>Vérification REST</span>
+                                <input
+                                    type="checkbox"
+                                    checked={config.verifyWithRest}
+                                    onChange={(e) => setConfig({ ...config, verifyWithRest: e.target.checked })}
+                                />
+                            </label>
+                            <label className={styles.configItem}>
+                                <span>Anti-Liquidation</span>
+                                <input
+                                    type="checkbox"
+                                    checked={config.antiLiquidation}
+                                    onChange={(e) => setConfig({ ...config, antiLiquidation: e.target.checked })}
+                                />
+                            </label>
+                            <label className={styles.configItem}>
+                                <span>Spread Min (%)</span>
+                                <input
+                                    type="number"
+                                    step="0.05"
+                                    value={config.minSpreadPercent}
+                                    onChange={(e) => setConfig({ ...config, minSpreadPercent: parseFloat(e.target.value) || 0 })}
+                                />
+                            </label>
+                            <label className={styles.configItem}>
+                                <span>Spread Max (%)</span>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    value={config.maxSpreadPercent}
+                                    onChange={(e) => setConfig({ ...config, maxSpreadPercent: parseFloat(e.target.value) || 0 })}
+                                />
+                            </label>
+                            <label className={styles.configItem}>
+                                <span>Taille/Jambe ($)</span>
+                                <input
+                                    type="number"
+                                    step="50"
+                                    value={config.positionSizePerLeg}
+                                    onChange={(e) => setConfig({ ...config, positionSizePerLeg: parseFloat(e.target.value) || 0 })}
+                                />
+                            </label>
+                            <label className={styles.configItem}>
+                                <span>Levier</span>
+                                <select
+                                    value={config.leverage}
+                                    onChange={(e) => setConfig({ ...config, leverage: parseInt(e.target.value) })}
+                                >
+                                    {LEVERAGE_OPTIONS.map((lev) => (
+                                        <option key={lev} value={lev}>{lev}x</option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <div className={styles.collateralInfo}>
+                            💰 Collateral estimé: <strong>${estimatedCollateral.toFixed(2)}</strong>
+                            {liquidationBuffer}
+                        </div>
+                        <button className={styles.updateBtn} onClick={updateConfig}>
+                            Sauvegarder
+                        </button>
+                    </section>
 
-                {/* Token Whitelist Panel */}
-                <section className={styles.panel}>
-                    <h2>Tokens Autorisés</h2>
-                    <p className={styles.panelHint}>Ajoute les tokens sur lesquels le bot peut trader (laisser vide = tous) :</p>
-                    <div className={styles.tokenInputRow}>
-                        <input
-                            type="text"
-                            placeholder="Ex: BTC-USD, ETH-USD"
-                            value={tokenInput}
-                            onChange={(e) => setTokenInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && tokenInput.trim()) {
-                                    const newToken = tokenInput.trim().toUpperCase();
-                                    if (!config.allowedTokens.includes(newToken)) {
-                                        setConfig({
-                                            ...config,
-                                            allowedTokens: [...config.allowedTokens, newToken]
-                                        });
+                    {/* Exchanges */}
+                    <section className={styles.panel}>
+                        <h2>📡 Exchanges ({config.selectedExchanges.length})</h2>
+                        <div className={styles.exchangeGrid}>
+                            {ALL_EXCHANGES.map((ex) => (
+                                <label key={ex} className={styles.exchangeChip} data-active={config.selectedExchanges.includes(ex)}>
+                                    <input
+                                        type="checkbox"
+                                        checked={config.selectedExchanges.includes(ex)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setConfig({ ...config, selectedExchanges: [...config.selectedExchanges, ex] });
+                                            } else {
+                                                setConfig({ ...config, selectedExchanges: config.selectedExchanges.filter(x => x !== ex) });
+                                            }
+                                        }}
+                                    />
+                                    {ex.toUpperCase()}
+                                </label>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Tokens */}
+                    <section className={styles.panel}>
+                        <h2>🪙 Tokens ({config.allowedTokens.length || 'Tous'})</h2>
+                        <div className={styles.tokenInput}>
+                            <input
+                                type="text"
+                                placeholder="BTC-USD, ETH-USD..."
+                                value={tokenInput}
+                                onChange={(e) => setTokenInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && tokenInput.trim()) {
+                                        const newToken = tokenInput.trim().toUpperCase();
+                                        if (!config.allowedTokens.includes(newToken)) {
+                                            setConfig({ ...config, allowedTokens: [...config.allowedTokens, newToken] });
+                                        }
+                                        setTokenInput('');
                                     }
-                                    setTokenInput('');
-                                }
-                            }}
-                            className={styles.tokenInput}
-                        />
-                        <button
-                            className={styles.addTokenButton}
-                            onClick={() => {
+                                }}
+                            />
+                            <button onClick={() => {
                                 if (tokenInput.trim()) {
                                     const newToken = tokenInput.trim().toUpperCase();
                                     if (!config.allowedTokens.includes(newToken)) {
-                                        setConfig({
-                                            ...config,
-                                            allowedTokens: [...config.allowedTokens, newToken]
-                                        });
+                                        setConfig({ ...config, allowedTokens: [...config.allowedTokens, newToken] });
                                     }
                                     setTokenInput('');
                                 }
-                            }}
-                        >
-                            + Ajouter
-                        </button>
-                    </div>
-                    <div className={styles.tokenTags}>
-                        {config.allowedTokens.length === 0 ? (
-                            <span className={styles.allTokensHint}>Tous les tokens (aucune restriction)</span>
-                        ) : (
-                            config.allowedTokens.map((t) => (
-                                <span key={t} className={styles.tokenTag}>
-                                    {t}
-                                    <button
-                                        className={styles.removeTokenBtn}
-                                        onClick={() => setConfig({
+                            }}>+</button>
+                        </div>
+                        <div className={styles.tokenList}>
+                            {config.allowedTokens.length === 0 ? (
+                                <span className={styles.allTokens}>Tous les tokens autorisés</span>
+                            ) : (
+                                config.allowedTokens.map((t) => (
+                                    <span key={t} className={styles.tokenChip}>
+                                        {t}
+                                        <button onClick={() => setConfig({
                                             ...config,
-                                            allowedTokens: config.allowedTokens.filter(tok => tok !== t)
-                                        })}
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))
+                                            allowedTokens: config.allowedTokens.filter(x => x !== t)
+                                        })}>×</button>
+                                    </span>
+                                ))
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                {/* Right Column - Trades */}
+                <div className={styles.rightColumn}>
+                    {/* Active Trades */}
+                    <section className={styles.panel}>
+                        <h2>🔥 Trades Actifs ({stats?.activeTrades?.length || 0})</h2>
+                        {stats?.activeTrades && stats.activeTrades.length > 0 ? (
+                            <div className={styles.tradesTable}>
+                                <div className={styles.tableHeader}>
+                                    <span>Token</span>
+                                    <span>Long → Short</span>
+                                    <span>Entry</span>
+                                    <span>Current</span>
+                                    <span>PnL</span>
+                                    <span>Action</span>
+                                </div>
+                                {stats.activeTrades.map((trade) => (
+                                    <div key={trade.id} className={styles.tableRow}>
+                                        <span className={styles.tradeSymbol}>{trade.symbol.replace('-USD', '')}</span>
+                                        <span className={styles.tradeExchanges}>
+                                            {trade.longExchange} → {trade.shortExchange}
+                                        </span>
+                                        <span>{trade.entrySpread.toFixed(3)}%</span>
+                                        <span>{trade.currentSpread.toFixed(3)}%</span>
+                                        <span className={styles.tradePnl} data-positive={trade.pnl >= 0}>
+                                            {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}$
+                                        </span>
+                                        <button className={styles.closeBtn} onClick={() => closeTrade(trade.id)}>
+                                            Fermer
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className={styles.emptyState}>Aucun trade actif</p>
                         )}
-                    </div>
-                </section>
+                    </section>
 
-
-                {/* Active Trades */}
-                <section className={styles.panel}>
-                    <h2>Trades actifs</h2>
-                    {stats?.activeTrades && stats.activeTrades.length > 0 ? (
-                        <div className={styles.tradesList}>
-                            {stats.activeTrades.map((trade: any) => (
-                                <div key={trade.id} className={styles.tradeItem}>
-                                    <span className={styles.tradeSymbol}>{trade.symbol}</span>
-                                    <span className={styles.tradeInfo}>
-                                        Long {trade.longExchange} / Short {trade.shortExchange}
-                                    </span>
-                                    <span className={styles.tradeSpread}>
-                                        {trade.entrySpread?.toFixed(3)}%
-                                    </span>
+                    {/* Trade History */}
+                    <section className={styles.panel}>
+                        <h2>📜 Historique</h2>
+                        {stats?.tradeHistory && stats.tradeHistory.length > 0 ? (
+                            <div className={styles.tradesTable}>
+                                <div className={styles.tableHeader}>
+                                    <span>Token</span>
+                                    <span>Exchanges</span>
+                                    <span>Entry → Exit</span>
+                                    <span>PnL</span>
+                                    <span>Status</span>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className={styles.emptyState}>Aucun trade actif</p>
-                    )}
-                </section>
-
-                {/* Trade History */}
-                <section className={styles.panel}>
-                    <h2>Historique récent</h2>
-                    {stats?.tradeHistory && stats.tradeHistory.length > 0 ? (
-                        <div className={styles.tradesList}>
-                            {stats.tradeHistory.map((trade: any) => (
-                                <div key={trade.id} className={styles.tradeItem}>
-                                    <span className={styles.tradeSymbol}>{trade.symbol}</span>
-                                    <span className={styles.tradeStatus}>
-                                        {trade.status === 'COMPLETED' ? '✅' : trade.status === 'FAILED' ? '❌' : '⏳'}
-                                    </span>
-                                    <span className={styles.tradeSpread}>
-                                        {trade.entrySpread?.toFixed(3)}%
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className={styles.emptyState}>Aucun historique</p>
-                    )}
-                </section>
+                                {stats.tradeHistory.slice(0, 10).map((trade) => (
+                                    <div key={trade.id} className={styles.tableRow}>
+                                        <span className={styles.tradeSymbol}>{trade.symbol.replace('-USD', '')}</span>
+                                        <span className={styles.tradeExchanges}>
+                                            {trade.longExchange} / {trade.shortExchange}
+                                        </span>
+                                        <span>{trade.entrySpread.toFixed(2)}% → {trade.exitSpread.toFixed(2)}%</span>
+                                        <span className={styles.tradePnl} data-positive={trade.pnl >= 0}>
+                                            {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(2)}$
+                                        </span>
+                                        <span className={styles.tradeStatus} data-status={trade.status}>
+                                            {trade.status === 'COMPLETED' ? '✅' : trade.status === 'LIQUIDATED' ? '💀' : '❌'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className={styles.emptyState}>Aucun historique</p>
+                        )}
+                    </section>
+                </div>
             </div>
 
-            {/* Warning Banner */}
-            <div className={styles.warningBanner}>
-                ⚠️ Cette page est secrète et protégée par token. Ne partagez jamais l'URL.
-            </div>
+            {/* Footer Warning */}
+            <footer className={styles.footer}>
+                ⚠️ Page secrète - Ne partagez jamais l'URL
+            </footer>
         </div>
     );
 }
