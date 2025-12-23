@@ -1,48 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// In-memory trading state (in production, this would be synced with the engine)
-export const tradingState = {
-    isRunning: false,
-    isAuthenticated: false,
-    performance: {
-        totalPnl: 0,
-        todayPnl: 0,
-        winRate: 0,
-        totalTrades: 0,
-    },
-    strategy: {
-        opportunitiesSeen: 0,
-        opportunitiesFiltered: 0,
-        tradesAttempted: 0,
-        tradesSucceeded: 0,
-        tradesFailed: 0,
-    },
-    activeTrades: [] as Array<{
-        id: string;
-        symbol: string;
-        longExchange: string;
-        shortExchange: string;
-        entrySpread: number;
-        currentSpread: number;
-        entryPriceLong: number;
-        entryPriceShort: number;
-        positionSize: number;
-        pnl: number;
-        openedAt: string;
-    }>,
-    tradeHistory: [] as Array<{
-        id: string;
-        symbol: string;
-        longExchange: string;
-        shortExchange: string;
-        entrySpread: number;
-        exitSpread: number;
-        pnl: number;
-        duration: string;
-        status: 'COMPLETED' | 'FAILED' | 'LIQUIDATED';
-        closedAt: string;
-    }>,
-};
+import { tradingState } from '../state';
 
 /**
  * Get trading stats

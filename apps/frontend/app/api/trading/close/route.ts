@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tradingState } from '../stats/route';
+import { tradingState } from '../state';
 
 /**
  * Close an active trade
