@@ -33,6 +33,9 @@ export { WalletManager } from './wallet-manager.js';
 export { TradeExecutor, OrderExecutor } from './trade-executor.js';
 export { TradePersistence } from './trade-persistence.js';
 export { PositionMonitor } from './position-monitor.js';
+export { ExitManager, ExitConfig, DEFAULT_EXIT_CONFIG } from './exit-manager.js';
+export { DepthAnalyzer, LiquidityAnalysis, DepthData } from './depth-analyzer.js';
+export { ScaledOrderExecutor, ScaleConfig, DEFAULT_SCALE_CONFIG } from './scaled-executor.js';
 
 // Strategies
 export { SimpleArbStrategy } from './strategies/simple-arb.js';
