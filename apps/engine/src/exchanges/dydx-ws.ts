@@ -105,24 +105,27 @@ export class DydxWebSocket extends BaseExchangeAdapter {
 
     private handleOrderbookData(marketId: string, data: any): void {
         // Extract bids and asks
-        // Format: { bids: [{price: "42000", size: "1.5"}, ...], asks: [...] }
+        // dYdX format: { bids: [["42000", "1.5"], ...], asks: [...] }
+        // Each entry is [price, size] as strings
         const bids = data.bids || [];
         const asks = data.asks || [];
 
-        if (bids.length === 0 || asks.length === 0) return;
+        if (bids.length === 0 && asks.length === 0) return;
 
         // Find best bid (highest) and best ask (lowest)
         let bestBid = 0;
         let bestAsk = Infinity;
 
         for (const bid of bids) {
-            const price = parseFloat(bid.price);
-            if (price > bestBid) bestBid = price;
+            // bid can be [price, size] or {price, size}
+            const price = Array.isArray(bid) ? parseFloat(bid[0]) : parseFloat(bid.price);
+            if (!isNaN(price) && price > bestBid) bestBid = price;
         }
 
         for (const ask of asks) {
-            const price = parseFloat(ask.price);
-            if (price < bestAsk) bestAsk = price;
+            // ask can be [price, size] or {price, size}
+            const price = Array.isArray(ask) ? parseFloat(ask[0]) : parseFloat(ask.price);
+            if (!isNaN(price) && price < bestAsk) bestAsk = price;
         }
 
         if (bestBid > 0 && bestAsk < Infinity && bestAsk > 0) {
