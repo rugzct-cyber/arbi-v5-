@@ -8,14 +8,8 @@ import { normalizeSymbol } from '@arbitrage/shared';
  * Uses orderbooks channel to get real Bid/Ask prices.
  * Docs: https://docs.dydx.xyz/indexer-client/websockets
  * 
- * WebSocket URL: wss://indexer.dydx.trade/v4/ws
- * 
- * Subscribe message format:
- * {
- *   "type": "subscribe",
- *   "channel": "v4_orderbook",
- *   "id": "BTC-USD"
- * }
+ * IMPORTANT: dYdX sends INCREMENTAL updates - each message only has bids OR asks.
+ * We must cache the orderbook and merge updates.
  */
 export class DydxWebSocket extends BaseExchangeAdapter {
     readonly exchangeId = 'dydx';
@@ -25,6 +19,9 @@ export class DydxWebSocket extends BaseExchangeAdapter {
 
     // Start with major tokens only
     private readonly symbols = ['BTC', 'ETH', 'SOL'];
+
+    // Cache orderbooks per market: { 'BTC-USD': { bids: Map<price, size>, asks: Map<price, size> } }
+    private orderbooks: Map<string, { bids: Map<string, number>; asks: Map<string, number> }> = new Map();
 
     protected onOpen(): void {
         console.log(`[${this.exchangeId}] WebSocket connected`);
@@ -36,6 +33,9 @@ export class DydxWebSocket extends BaseExchangeAdapter {
         // Subscribe to orderbook channel for each market
         for (const coin of this.symbols) {
             const marketId = `${coin}-USD`;
+            // Initialize orderbook cache
+            this.orderbooks.set(marketId, { bids: new Map(), asks: new Map() });
+
             this.send({
                 type: 'subscribe',
                 channel: 'v4_orderbook',
@@ -70,23 +70,19 @@ export class DydxWebSocket extends BaseExchangeAdapter {
                 return;
             }
 
-            // Handle subscribed message
-            if (message.type === 'subscribed') {
+            // Handle subscribed message (initial snapshot)
+            if (message.type === 'subscribed' && message.channel === 'v4_orderbook') {
                 console.log(`[${this.exchangeId}] Subscribed to ${message.channel}:${message.id}`);
+                // Initial snapshot
+                if (message.contents) {
+                    this.handleOrderbookSnapshot(message.id, message.contents);
+                }
                 return;
             }
 
             // Handle channel_data (orderbook updates)
             if (message.type === 'channel_data' && message.channel === 'v4_orderbook') {
-                this.handleOrderbookUpdate(message);
-            }
-
-            // Handle channel_batch_data (batched orderbook updates)
-            if (message.type === 'channel_batch_data' && message.channel === 'v4_orderbook') {
-                // Process each update in the batch
-                for (const update of message.contents || []) {
-                    this.handleOrderbookData(message.id, update);
-                }
+                this.handleOrderbookUpdate(message.id, message.contents);
             }
 
         } catch (error) {
@@ -94,42 +90,81 @@ export class DydxWebSocket extends BaseExchangeAdapter {
         }
     }
 
-    private handleOrderbookUpdate(message: any): void {
-        const marketId = message.id; // e.g., "BTC-USD"
-        const contents = message.contents;
+    private handleOrderbookSnapshot(marketId: string, data: any): void {
+        const orderbook = this.orderbooks.get(marketId);
+        if (!orderbook) return;
 
-        if (!contents) return;
+        // Clear and rebuild
+        orderbook.bids.clear();
+        orderbook.asks.clear();
 
-        this.handleOrderbookData(marketId, contents);
-    }
-
-    private handleOrderbookData(marketId: string, data: any): void {
-        // Extract bids and asks
-        // dYdX format: { bids: [["42000", "1.5"], ...], asks: [...] }
-        // Each entry is [price, size] as strings
-        const bids = data.bids || [];
-        const asks = data.asks || [];
-
-        if (bids.length === 0 && asks.length === 0) return;
-
-        // Find best bid (highest) and best ask (lowest)
-        let bestBid = 0;
-        let bestAsk = Infinity;
-
-        for (const bid of bids) {
-            // bid can be [price, size] or {price, size}
-            const price = Array.isArray(bid) ? parseFloat(bid[0]) : parseFloat(bid.price);
-            if (!isNaN(price) && price > bestBid) bestBid = price;
+        for (const bid of data.bids || []) {
+            const [price, size] = Array.isArray(bid) ? bid : [bid.price, bid.size];
+            const sizeNum = parseFloat(size);
+            if (sizeNum > 0) {
+                orderbook.bids.set(price, sizeNum);
+            }
         }
 
-        for (const ask of asks) {
-            // ask can be [price, size] or {price, size}
-            const price = Array.isArray(ask) ? parseFloat(ask[0]) : parseFloat(ask.price);
-            if (!isNaN(price) && price < bestAsk) bestAsk = price;
+        for (const ask of data.asks || []) {
+            const [price, size] = Array.isArray(ask) ? ask : [ask.price, ask.size];
+            const sizeNum = parseFloat(size);
+            if (sizeNum > 0) {
+                orderbook.asks.set(price, sizeNum);
+            }
+        }
+
+        this.emitBestPrices(marketId);
+    }
+
+    private handleOrderbookUpdate(marketId: string, data: any): void {
+        const orderbook = this.orderbooks.get(marketId);
+        if (!orderbook || !data) return;
+
+        // Update bids (size=0 means remove)
+        for (const bid of data.bids || []) {
+            const [price, size] = Array.isArray(bid) ? bid : [bid.price, bid.size];
+            const sizeNum = parseFloat(size);
+            if (sizeNum === 0) {
+                orderbook.bids.delete(price);
+            } else {
+                orderbook.bids.set(price, sizeNum);
+            }
+        }
+
+        // Update asks (size=0 means remove)
+        for (const ask of data.asks || []) {
+            const [price, size] = Array.isArray(ask) ? ask : [ask.price, ask.size];
+            const sizeNum = parseFloat(size);
+            if (sizeNum === 0) {
+                orderbook.asks.delete(price);
+            } else {
+                orderbook.asks.set(price, sizeNum);
+            }
+        }
+
+        this.emitBestPrices(marketId);
+    }
+
+    private emitBestPrices(marketId: string): void {
+        const orderbook = this.orderbooks.get(marketId);
+        if (!orderbook) return;
+
+        // Find best bid (highest price)
+        let bestBid = 0;
+        for (const priceStr of orderbook.bids.keys()) {
+            const price = parseFloat(priceStr);
+            if (price > bestBid) bestBid = price;
+        }
+
+        // Find best ask (lowest price)
+        let bestAsk = Infinity;
+        for (const priceStr of orderbook.asks.keys()) {
+            const price = parseFloat(priceStr);
+            if (price < bestAsk) bestAsk = price;
         }
 
         if (bestBid > 0 && bestAsk < Infinity && bestAsk > 0) {
-            // Normalize symbol: "BTC-USD" -> "BTC-USD"
             const symbol = normalizeSymbol(marketId.replace('-USD', ''));
 
             this.emitPrice({
@@ -146,6 +181,7 @@ export class DydxWebSocket extends BaseExchangeAdapter {
             clearInterval(this.pingInterval);
             this.pingInterval = null;
         }
+        this.orderbooks.clear();
         await super.disconnect();
     }
 }
