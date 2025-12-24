@@ -68,9 +68,9 @@ export class LighterRESTAdapter extends BaseRESTAdapter {
         super({ symbols: config?.symbols || [] });
     }
 
-    // Batch size for parallel requests (avoid rate limiting)
-    private readonly BATCH_SIZE = 20;
-    private readonly BATCH_DELAY_MS = 100;
+    // Batch size for parallel requests (conservative to avoid rate limiting)
+    private readonly BATCH_SIZE = 5;
+    private readonly BATCH_DELAY_MS = 500;
 
     async fetchPrices(): Promise<PriceData[]> {
         const prices: PriceData[] = [];

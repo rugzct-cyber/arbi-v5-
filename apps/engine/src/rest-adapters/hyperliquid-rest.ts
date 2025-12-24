@@ -39,9 +39,9 @@ export class HyperliquidRESTAdapter extends BaseRESTAdapter {
         super({ symbols: config?.symbols || [] });
     }
 
-    // Batch size for parallel requests
-    private readonly BATCH_SIZE = 20;
-    private readonly BATCH_DELAY_MS = 100;
+    // Batch size for parallel requests (conservative to avoid rate limits)
+    private readonly BATCH_SIZE = 5;
+    private readonly BATCH_DELAY_MS = 500;
 
     async fetchPrices(): Promise<PriceData[]> {
         const prices: PriceData[] = [];
@@ -73,7 +73,8 @@ export class HyperliquidRESTAdapter extends BaseRESTAdapter {
 
                     const data = await response.json();
 
-                    if (data.levels && data.levels[0]?.length > 0 && data.levels[1]?.length > 0) {
+                    // Null check to prevent crashes
+                    if (data?.levels && data.levels[0]?.length > 0 && data.levels[1]?.length > 0) {
                         const bestBid = parseFloat(data.levels[0][0].px);
                         const bestAsk = parseFloat(data.levels[1][0].px);
 

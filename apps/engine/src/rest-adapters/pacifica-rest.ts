@@ -50,9 +50,9 @@ export class PacificaRESTAdapter extends BaseRESTAdapter {
         });
     }
 
-    // Batch size for parallel requests
-    private readonly BATCH_SIZE = 20;
-    private readonly BATCH_DELAY_MS = 100;
+    // Batch size for parallel requests (conservative to avoid rate limits)
+    private readonly BATCH_SIZE = 5;
+    private readonly BATCH_DELAY_MS = 500;
 
     async fetchPrices(): Promise<PriceData[]> {
         const prices: PriceData[] = [];
