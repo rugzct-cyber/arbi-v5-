@@ -17,7 +17,7 @@ interface ExchangeStatus {
 }
 
 // Only show exchanges that are actually implemented in the engine
-const ACTIVE_EXCHANGE_IDS = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado'];
+const ACTIVE_EXCHANGE_IDS = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado', 'dydx'];
 const ALL_EXCHANGES: ExchangeStatus[] = ACTIVE_EXCHANGE_IDS.map(id => ({
     id,
     connected: false

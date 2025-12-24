@@ -8,7 +8,7 @@ import { AlertModal } from '@/components/AlertModal';
 import { AlertNotification } from '@/components/AlertNotification';
 import { AlertList } from '@/components/AlertList';
 
-const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado'];
+const EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado', 'dydx'];
 
 function DashboardContent() {
     const {

@@ -6,7 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import styles from './trading.module.css';
 
 // Available exchanges
-const ALL_EXCHANGES = ['hyperliquid', 'paradex', 'vest', 'extended', 'lighter', 'pacifica', 'ethereal', 'nado'];
+const ALL_EXCHANGES = ['hyperliquid', 'paradex', 'vest', 'extended', 'lighter', 'pacifica', 'ethereal', 'nado', 'dydx'];
 const LEVERAGE_OPTIONS = [1, 2, 5, 10, 20];
 
 // Engine Socket.io URL

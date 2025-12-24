@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Allowed values for validation (whitelist approach)
-const VALID_EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal'];
+const VALID_EXCHANGES = ['paradex', 'vest', 'extended', 'hyperliquid', 'lighter', 'pacifica', 'ethereal', 'nado', 'dydx'];
 const VALID_RANGES = ['24H', '7D', '30D', 'ALL'];
 const SYMBOL_PATTERN = /^[A-Z0-9]+-USD$/;
 
