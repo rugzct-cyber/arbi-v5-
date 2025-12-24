@@ -73,6 +73,15 @@ export class DydxWebSocket extends BaseExchangeAdapter {
                 this.handleUpdate(message.id, message.contents);
             }
 
+            // Handle channel_batch_data (batched orderbook updates)
+            if (message.type === 'channel_batch_data' && message.channel === 'v4_orderbook') {
+                // Process each update in the batch
+                const updates = Array.isArray(message.contents) ? message.contents : [message.contents];
+                for (const update of updates) {
+                    this.handleUpdate(message.id, update);
+                }
+            }
+
         } catch (error) {
             console.error(`[${this.exchangeId}] Parse error:`, error);
         }
