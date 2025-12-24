@@ -19,7 +19,7 @@ export class DydxWebSocket extends BaseExchangeAdapter {
     async connect(): Promise<void> {
         console.log(`[${this.exchangeId}] Starting REST polling (every 500ms)`);
         this.startPolling();
-        this.emitConnected();
+        this.config.onConnected();
     }
 
     private startPolling(): void {
