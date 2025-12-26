@@ -47,7 +47,7 @@ export class ExtendedRESTAdapter extends BaseRESTAdapter {
                 'SNX', 'STRK', 'VIRTUAL', 'WLFI', 'XPL', 'ZEC', 'ZORA', 'ZRO',
                 // Tier 5 - More tokens
                 '0G', 'AIXBT', 'BCH', 'FIL', 'HBAR', 'ICP', 'INIT', 'INJ', 'JTO',
-                'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XLM', 'XMR', 'ZK',
+                'OM', 'ORDI', 'PAXG', 'POL', 'PYTH', 'RUNE', 'XAU', 'XLM', 'XMR', 'ZK',
                 'MELANIA', 'MORPHO', 'USUAL', 'VVV', 'WCT', 'MEGA', 'LIT',
             ],
         });
