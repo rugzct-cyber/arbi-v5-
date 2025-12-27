@@ -7,8 +7,7 @@
         "SUPABASE_URL",
         "SUPABASE_ANON_KEY",
         "NEXT_PUBLIC_SOCKET_URL",
-        "PORT",
-        "TRADING_SECRET_TOKEN"
+        "PORT"
     ],
     "tasks": {
         "build": {

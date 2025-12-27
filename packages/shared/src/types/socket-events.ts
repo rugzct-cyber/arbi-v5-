@@ -2,23 +2,6 @@ import type { PriceUpdate, AggregatedPrice } from './price.js';
 import type { ArbitrageOpportunity, ArbitrageStats } from './arbitrage.js';
 
 /**
- * Trading bot stats structure
- */
-export interface TradingStats {
-    isRunning: boolean;
-    isAuthenticated: boolean;
-    strategy: {
-        opportunitiesSeen: number;
-        opportunitiesFiltered: number;
-        tradesAttempted: number;
-        tradesSucceeded: number;
-        tradesFailed: number;
-    };
-    activeTrades: unknown[];
-    tradeHistory: unknown[];
-}
-
-/**
  * Events emitted from server to client
  */
 export interface ServerToClientEvents {
@@ -34,10 +17,6 @@ export interface ServerToClientEvents {
     'exchange:connected': (exchange: string) => void;
     'exchange:disconnected': (exchange: string) => void;
     'exchange:error': (data: { exchange: string; error: string }) => void;
-
-    // Trading events
-    'trading:update': (data: TradingStats) => void;
-    'trading:error': (message: string) => void;
 }
 
 /**
@@ -51,12 +30,6 @@ export interface ClientToServerEvents {
 
     // Configuration
     'config:update': (config: { minSpread?: number }) => void;
-
-    // Trading control
-    'trading:start': (token: string) => void;
-    'trading:stop': () => void;
-    'trading:config': (config: Record<string, unknown>) => void;
-    'trading:stats': () => void;
 }
 
 /**

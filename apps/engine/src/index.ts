@@ -7,8 +7,6 @@ import { ArbitrageDetector } from './services/arbitrage-detector.js';
 import { Broadcaster } from './services/broadcaster.js';
 import { SupabasePriceClient } from './database/supabase.js';
 import { RESTPoller } from './rest-adapters/index.js';
-import { TradingBot } from './trading/index.js';
-import type { TradingConfig } from './trading/types.js';
 
 const PORT = process.env.PORT || 3001;
 
@@ -31,22 +29,6 @@ async function main() {
     const priceAggregator = new PriceAggregator();
     const arbitrageDetector = new ArbitrageDetector({ minSpreadPercent: 0.1 });
     const broadcaster = new Broadcaster(io);
-
-    // Initialize Trading Bot (paper mode by default)
-    const tradingBot = new TradingBot({
-        paperMode: true,
-        enabled: true,
-        minSpreadPercent: 0.2,
-        maxSpreadPercent: 5.0,
-        maxPositionSizeUsd: 100,
-        verifyWithRest: true,
-    });
-
-    // Auto-authenticate if token is set
-    const tradingToken = process.env.TRADING_SECRET_TOKEN;
-    if (tradingToken) {
-        tradingBot.authenticate(tradingToken);
-    }
 
     // Price tracking for logging
     let priceCount = 0;
@@ -75,16 +57,6 @@ async function main() {
             broadcaster.broadcastPrice(price);
             if (opportunity) {
                 broadcaster.broadcastOpportunity(opportunity);
-
-                // Pass opportunity to trading bot
-                if (tradingBot.isActive()) {
-                    const result = await tradingBot.processOpportunity(opportunity);
-                    if (result) {
-                        console.log(`[TradingBot] Trade result:`, result.status, result.symbol);
-                        // Broadcast trading update
-                        io.emit('trading:update', tradingBot.getStats());
-                    }
-                }
             }
         },
         onError: (exchange, error) => {
@@ -101,50 +73,6 @@ async function main() {
         },
     });
 
-    // Trading bot Socket.io control events
-    io.on('connection', (socket) => {
-        // Send current trading status on connect
-        socket.emit('trading:update', tradingBot.getStats());
-
-        // Start trading bot
-        socket.on('trading:start', (token: string) => {
-            console.log(`[Socket] trading:start request from ${socket.id}`);
-            if (tradingBot.isAuth() || tradingBot.authenticate(token)) {
-                const success = tradingBot.start();
-                socket.emit('trading:update', tradingBot.getStats());
-                io.emit('trading:update', tradingBot.getStats());
-            } else {
-                socket.emit('trading:error', 'Authentication failed');
-            }
-        });
-
-        // Stop trading bot
-        socket.on('trading:stop', () => {
-            console.log(`[Socket] trading:stop request from ${socket.id}`);
-            tradingBot.stop();
-            io.emit('trading:update', tradingBot.getStats());
-        });
-
-        // Update trading config
-        socket.on('trading:config', (config: Partial<TradingConfig>) => {
-            console.log(`[Socket] trading:config update from ${socket.id}:`, config);
-            tradingBot.updateConfig(config);
-            io.emit('trading:update', tradingBot.getStats());
-        });
-
-        // Request current stats
-        socket.on('trading:stats', () => {
-            socket.emit('trading:update', tradingBot.getStats());
-        });
-    });
-
-    // Periodically broadcast trading stats to all clients
-    setInterval(() => {
-        if (io.engine.clientsCount > 0) {
-            io.emit('trading:update', tradingBot.getStats());
-        }
-    }, 5000); // Every 5 seconds
-
     // Initialize REST Poller for synchronized DB snapshots
     const restPoller = new RESTPoller({ supabase });
 
@@ -159,13 +87,11 @@ async function main() {
         console.log(`✅ Engine running on port ${PORT}`);
         console.log(`📡 Socket.io ready for connections (WebSocket → frontend)`);
         console.log(`💾 REST API polling for Supabase every 5 minutes`);
-        console.log(`🤖 Trading bot ${tradingBot.isAuth() ? 'authenticated' : 'waiting for auth'}`);
     });
 
     // Graceful shutdown
     const shutdown = async () => {
         console.log('\n🛑 Shutting down...');
-        tradingBot.stop();
         restPoller.stop();
         await exchangeManager.disconnectAll();
         await supabase.close();
